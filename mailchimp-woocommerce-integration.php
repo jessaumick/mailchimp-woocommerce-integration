@@ -2,7 +2,7 @@
 /*
 Plugin Name: MailChimp WooCommerce Integration
 Description: Specifically created for Zendo Project. Integrates WooCommerce with MailChimp API.
-Version: 1.1.0
+Version: 1.1.1
 Author: Jess A.
 */
 
@@ -58,9 +58,11 @@ function zendo_mailchimp_process_order($order_id, $old_status, $new_status, $ord
         // If the order contains an item from the "Trainings" category
         if ($has_training) {
             // Get the user's email, first name, and last name from the order
+            // Get the user's email, first name, and last name from the order
             $user_email = $order->get_billing_email();
-            $user_first_name = $order->get_billing_first_name();
-            $user_last_name = $order->get_billing_last_name();
+            $user_first_name = trim($order->get_billing_first_name());
+            $user_last_name = trim($order->get_billing_last_name());
+
 
             // Add the user's email, first name, and last name to the MailChimp mailing list
             $result = $MailChimp->post('lists/995b06f870/members', [
