@@ -2,7 +2,7 @@
 /*
 Plugin Name: MailChimp WooCommerce Integration
 Description: Specifically created for Zendo Project. Integrates WooCommerce with MailChimp API.
-Version: 1.1.2
+Version: 1.2
 Author: Jess A.
 */
 
@@ -69,7 +69,7 @@ function zendo_mailchimp_process_order($order_id, $new_status) {
             $user_last_name = trim($order->get_billing_last_name());
 
             // Add the user's email, first name, and last name to the MailChimp mailing list
-            $result = $MailChimp->post('lists/995b06f870/members', [
+            $result = $MailChimp->post('lists/95144482e8/members', [
                 'email_address' => $user_email,
                 'status' => 'subscribed', // or 'pending'
                 'merge_fields' => [
@@ -82,6 +82,20 @@ function zendo_mailchimp_process_order($order_id, $new_status) {
                 // Error handling
                 $error_message = $MailChimp->getLastError();
                 error_log('MailChimp API Error: ' . $error_message);
+            }
+
+            // Add tag to the user
+            $subscriber_hash = $MailChimp->subscriberHash($user_email);
+            $tag_result = $MailChimp->post("lists/95144482e8/members/$subscriber_hash/tags", [
+                'tags' => [
+                    ['name' => 'July 2024 Zendo SIT Registrants', 'status' => 'active'],
+                ],
+            ]);
+
+            if (!$MailChimp->success()) {
+                // Error handling for adding tag
+                $error_message = $MailChimp->getLastError();
+                error_log('MailChimp API Error (Adding Tag): ' . $error_message);
             }
         }
     }
