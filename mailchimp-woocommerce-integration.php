@@ -2,7 +2,7 @@
 /*
 Plugin Name: MailChimp WooCommerce Integration
 Description: Specifically created for Zendo Project. Integrates WooCommerce with MailChimp API.
-Version: 1.1.1
+Version: 1.1.2
 Author: Jess A.
 */
 
@@ -40,14 +40,19 @@ function zendo_mailchimp_init() {
 }
 
 // Hook into WooCommerce order status change
-add_action('woocommerce_order_status_changed', 'zendo_mailchimp_process_order', 10, 4);
-function zendo_mailchimp_process_order($order_id, $old_status, $new_status, $order) {
+add_action('woocommerce_order_status_changed', 'zendo_mailchimp_process_order', 10, 2);
+function zendo_mailchimp_process_order($order_id, $new_status) {
     global $MailChimp;
-    // Check if the new status is not "failed"
-    if ($order->get_status() != 'failed') {
+
+    // Get the order object
+    $order = wc_get_order($order_id);
+
+    // Check if the new status is not "Failed" and not "Cancelled"
+    if ($new_status != 'failed' && $new_status != 'cancelled') {
         // Check if the order contains any item from a specific product category
         $items = $order->get_items();
         $has_training = false;
+
         foreach ($items as $item) {
             $product_id = $item->get_product_id();
             if (has_term('Trainings', 'product_cat', $product_id)) {
@@ -55,14 +60,13 @@ function zendo_mailchimp_process_order($order_id, $old_status, $new_status, $ord
                 break; // Exit the loop if a match is found
             }
         }
+
         // If the order contains an item from the "Trainings" category
         if ($has_training) {
-            // Get the user's email, first name, and last name from the order
             // Get the user's email, first name, and last name from the order
             $user_email = $order->get_billing_email();
             $user_first_name = trim($order->get_billing_first_name());
             $user_last_name = trim($order->get_billing_last_name());
-
 
             // Add the user's email, first name, and last name to the MailChimp mailing list
             $result = $MailChimp->post('lists/995b06f870/members', [
@@ -73,6 +77,7 @@ function zendo_mailchimp_process_order($order_id, $old_status, $new_status, $ord
                     'LNAME' => $user_last_name,
                 ],
             ]);
+
             if (!$MailChimp->success()) {
                 // Error handling
                 $error_message = $MailChimp->getLastError();
@@ -81,4 +86,5 @@ function zendo_mailchimp_process_order($order_id, $old_status, $new_status, $ord
         }
     }
 }
+
 ?>
