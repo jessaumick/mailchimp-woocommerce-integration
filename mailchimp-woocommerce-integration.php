@@ -2,7 +2,7 @@
 /*
 Plugin Name: MailChimp WooCommerce Integration
 Description: Specifically created for Zendo Project. Integrates WooCommerce with MailChimp API.
-Version: 1.2
+Version: 1.3
 Author: Jess A.
 */
 
@@ -47,8 +47,11 @@ function zendo_mailchimp_process_order($order_id, $new_status) {
     // Get the order object
     $order = wc_get_order($order_id);
 
-    // Check if the new status is not "Failed" and not "Cancelled"
-    if ($new_status != 'failed' && $new_status != 'cancelled') {
+ // Check if the new status is "Processing"
+    if ($new_status != 'processing') {
+        return; // Exit the function if the order status is not "Processing"
+    }
+
         // Check if the order contains any item from a specific product category
         $items = $order->get_items();
         $has_training = false;
