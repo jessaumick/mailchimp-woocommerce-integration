@@ -40,17 +40,17 @@ function zendo_mailchimp_init() {
 }
 
 // Hook into WooCommerce order status change
-add_action('woocommerce_order_status_changed', 'zendo_mailchimp_process_order', 10, 2);
-function zendo_mailchimp_process_order($order_id, $new_status) {
+add_action('woocommerce_order_status_changed', 'zendo_mailchimp_process_order', 10, 3);
+function zendo_mailchimp_process_order($order_id, $old_status, $new_status) {
     global $MailChimp;
+
+    // Check if the new status is "processing" and the old status is not "processing"
+    if ($new_status != 'processing' || $old_status == 'processing') {
+        return; // Exit the function if the conditions are not met
+    }
 
     // Get the order object
     $order = wc_get_order($order_id);
-
-    // Check if the new status is "processing"
-    if ($new_status != 'processing') {
-        return; // Exit the function if the order status is not "processing"
-    }
 
     // Check if the order contains any item from a specific product category
     $items = $order->get_items();
