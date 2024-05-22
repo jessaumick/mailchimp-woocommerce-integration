@@ -2,7 +2,7 @@
 /*
 Plugin Name: MailChimp WooCommerce Integration
 Description: Specifically created for Zendo Project. Integrates WooCommerce with MailChimp API.
-Version: 1.3
+Version: 1.3.1
 Author: Jess A.
 */
 
