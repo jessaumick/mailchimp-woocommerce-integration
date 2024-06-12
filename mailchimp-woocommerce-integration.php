@@ -91,7 +91,7 @@ function zendo_mailchimp_process_order($order_id, $old_status, $new_status) {
         $subscriber_hash = $MailChimp->subscriberHash($user_email);
         $tag_result = $MailChimp->post("lists/95144482e8/members/$subscriber_hash/tags", [
             'tags' => [
-                ['name' => 'July 2024 Zendo SIT Registrants', 'status' => 'active'],
+                ['name' => 'July 2024 SIT Registrants', 'status' => 'active'],
             ],
         ]);
 
