@@ -2,7 +2,7 @@
 /*
 Plugin Name: Zendo SIT
 Description: When a user enrolls in the Zendo SIT course, add them to the corresponding MailChimp list.
-Version: 2.3.1
+Version: 2.5
 Author: Jess Aumick
 */
 
@@ -99,27 +99,21 @@ function zendo_mailchimp_process_order($order_id, $old_status, $new_status)
     }
 
     // ----------------------------------------------------------
-    // 1) Create a map from product IDs to their desired tag names
-    // ----------------------------------------------------------
-    $tag_mapping = [
-        232786 => 'February 2025 SIT Registrants',
-        233515 => 'April 2025 SIT Registrants',
-        // Add more product-to-tag mappings here if needed
-    ];
-
-    // ----------------------------------------------------------
-    // 2) Loop over each item, check if it appears in the map, and tag accordingly
+    // 1) Loop over each item, check if it appears in the map, and tag accordingly
     // ----------------------------------------------------------
     $items = $order->get_items();
     foreach ($items as $item) {
-        // Variation ID or product ID
+        // Identify the correct ID
         $variation_id = $item->get_variation_id();
         $product_id   = $variation_id ? $variation_id : $item->get_product_id();
-
-        if (isset($tag_mapping[$product_id])) {
-            $tag_name        = $tag_mapping[$product_id];
+        
+        // Read the variation’s MailChimp tag from post meta
+        $tag_name = get_post_meta($product_id, '_zendo_sit_mailchimp_tag', true);
+    
+        // If the tag isn’t empty, assign it
+        if (!empty($tag_name)) {
             $subscriber_hash = $MailChimp->subscriberHash($user_email);
-
+    
             $tag_result = $MailChimp->post("lists/08ecdffceb/members/$subscriber_hash/tags", [
                 "tags" => [
                     [
@@ -128,12 +122,12 @@ function zendo_mailchimp_process_order($order_id, $old_status, $new_status)
                     ],
                 ],
             ]);
-
+    
             if (!$MailChimp->success()) {
                 error_log("MailChimp API Error (Adding Tag: $tag_name): " . $MailChimp->getLastError());
             }
         }
-    }
+    }    
 }
 
 add_action('woocommerce_product_after_variable_attributes', 'zendo_add_mailchimp_tag_field_to_variations', 10, 3);
