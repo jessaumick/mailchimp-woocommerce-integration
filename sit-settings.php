@@ -4,10 +4,6 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// Remove the old admin menu hook since we're moving to WooCommerce
-// remove_action('admin_menu', 'zendo_add_settings_page');
-// remove_action('admin_init', 'zendo_register_settings');
-
 // Add integration to WooCommerce
 add_filter('woocommerce_integrations', 'add_mctwc_integration');
 function add_mctwc_integration($integrations) {
@@ -53,7 +49,7 @@ function load_mctwc_integration_class() {
             'api_key' => array(
                 'title' => __('MailChimp API Key', 'mctwc-sit'),
                 'type' => 'password',
-                'description' => __('Enter your MailChimp API key', 'mctwc-sit') . ' <a href="https://mailchimp.com/help/about-api-keys/" target="_blank">' . __('How to get your API key', 'mctwc-sit') . '</a>',
+                'description' => __('Enter your MailChimp API key.', 'mctwc-sit') . ' <a href="https://mailchimp.com/help/about-api-keys/" target="_blank">' . __('How to get your API key', 'mctwc-sit') . '</a>',
                 'default' => '',
                 'id' => 'mailchimp_api_key' // Keep your existing ID for compatibility
             ),
@@ -282,7 +278,7 @@ function zendo_ajax_get_mailchimp_lists() {
 }
 
 // Create the admin.js file if it doesn't exist
-function zendo_create_admin_js() {
+function mctwc_create_admin_js() {
     $js_dir = plugin_dir_path(__FILE__) . 'js';
     
     // Create the directory if it doesn't exist
@@ -353,4 +349,4 @@ EOT;
 }
 
 // Initialize JS file
-add_action('plugins_loaded', 'zendo_create_admin_js');
+add_action('plugins_loaded', 'mctwc_create_admin_js');
