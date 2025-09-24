@@ -2,7 +2,7 @@
 /*
 Plugin Name: MailChimp Tags for WooCommerce
 Description: Assign tags to MailChimp contacts based on specific items purchased from your WooCommerce shop.
-Version: 0.3.0
+Version: 0.3.2
 Author: Jess A.
 */
 
@@ -18,7 +18,6 @@ require_once plugin_dir_path(__FILE__) . 'sit-settings.php';
 add_filter('plugin_action_links_' . plugin_basename(__FILE__), 'mctwc_add_plugin_settings_link');
 
 function mctwc_add_plugin_settings_link($links) {
-    // Create the settings link
     $settings_link = sprintf(
         '<a href="%s">%s</a>',
         admin_url('admin.php?page=wc-settings&tab=integration&section=mailchimp-tags'),
