@@ -1,4 +1,9 @@
 <?php
+/**
+ * Creates Settings page under WooCommerce > Settings > Integrations
+ *
+ * @package MailChimpTagsForWooCommerce
+ */
 
 if ( ! defined ('ABSPATH') ) {
 	exit;

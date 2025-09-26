@@ -2,7 +2,7 @@
 /**
  * Plugin Name: MailChimp Tags for WooCommerce
  * Description: Assign tags to MailChimp contacts based on specific items purchased from your WooCommerce shop.
- * Version: 0.3.3
+ * Version: 0.3.4
  * Author: Jess A.
  *
  * @package MailChimpTagsForWooCommerce
@@ -67,7 +67,7 @@ function mctwc_mailchimp_process_order( $order_id, $old_status, $new_status ) {
 	mctwc_log("Processing order $order_id: status changed from $old_status to $new_status");
 
 	// Get API key and list ID from options.
-	$mailchimp_api_key = get_option("mailchimp_api_key");
+	$mailchimp_api_key = get_option('mailchimp_api_key');
 	$list_id = get_option('mailchimp_list_id');
 
 	// Validate API key and list ID.
@@ -78,7 +78,7 @@ function mctwc_mailchimp_process_order( $order_id, $old_status, $new_status ) {
 
 	// Initialize MailChimp API client.
 	try {
-		$MailChimp = new \DrewM\MailChimp\MailChimp($mailchimp_api_key);
+		$mailchimp = new \DrewM\MailChimp\MailChimp($mailchimp_api_key);
 	} catch ( Exception $e ) {
 		mctwc_log('Failed to initialize MailChimp: ' . $e->getMessage());
 		return;
@@ -104,15 +104,15 @@ function mctwc_mailchimp_process_order( $order_id, $old_status, $new_status ) {
 	mctwc_log("Processing tags for: $user_email ($user_first_name $user_last_name)");
 
 	// Calculate subscriber hash.
-	$subscriber_hash = $MailChimp->subscriberHash($user_email);
+	$subscriber_hash = $mailchimp->subscriberHash($user_email);
 
 	// Check if the member exists in MailChimp.
-	$member = $MailChimp->get("lists/$list_id/members/$subscriber_hash");
+	$member = $mailchimp->get("lists/$list_id/members/$subscriber_hash");
 
 	$member_exists = false;
 	$current_status = null;
 
-	if ( $MailChimp->success() ) {
+	if ( $mailchimp->success() ) {
 		$member_exists = true;
 		$current_status = isset($member['status']) ? $member['status'] : null;
 		mctwc_log("Found existing member $user_email with status: " . $current_status);
@@ -130,15 +130,15 @@ function mctwc_mailchimp_process_order( $order_id, $old_status, $new_status ) {
 
 		if ( $needs_update ) {
 			// Use PATCH to only update merge fields, never change status.
-			$update_result = $MailChimp->patch("lists/$list_id/members/$subscriber_hash", [
+			$update_result = $mailchimp->patch("lists/$list_id/members/$subscriber_hash", [
 				"merge_fields" => [
 					"FNAME" => $user_first_name,
 					"LNAME" => $user_last_name,
 				],
 			]);
 
-			if ( ! $MailChimp->success() ) {
-				mctwc_log('Warning: Could not update merge fields - ' . $MailChimp->getLastError());
+			if ( ! $mailchimp->success() ) {
+				mctwc_log('Warning: Could not update merge fields - ' . $mailchimp->getLastError());
 			} else {
 				mctwc_log("Successfully updated merge fields for $user_email");
 			}
@@ -184,7 +184,7 @@ function mctwc_mailchimp_process_order( $order_id, $old_status, $new_status ) {
 		if ( ! $member_exists ) {
 			mctwc_log("Creating transactional contact to apply tags");
 
-			$result = $MailChimp->put("lists/$list_id/members/$subscriber_hash", [
+			$result = $mailchimp->put("lists/$list_id/members/$subscriber_hash", [
 				"email_address" => $user_email,
 				"status_if_new" => "transactional",
 				"merge_fields" => [
@@ -193,8 +193,8 @@ function mctwc_mailchimp_process_order( $order_id, $old_status, $new_status ) {
 				],
 			]);
 
-			if ( ! $MailChimp->success() ) {
-				mctwc_log("Failed to create contact: " . $MailChimp->getLastError());
+			if ( ! $mailchimp->success() ) {
+				mctwc_log("Failed to create contact: " . $mailchimp->getLastError());
 				return;
 			} else {
 				mctwc_log("Created new transactional contact for $user_email");
@@ -203,18 +203,18 @@ function mctwc_mailchimp_process_order( $order_id, $old_status, $new_status ) {
 
 		// Apply tags.
 		try {
-			$tag_result = $MailChimp->post("lists/$list_id/members/$subscriber_hash/tags", [
+			$tag_result = $mailchimp->post("lists/$list_id/members/$subscriber_hash/tags", [
 				"tags" => $tags_to_apply,
 			]);
 
-			if ( ! $MailChimp->success() ) {
-				mctwc_log("MailChimp API Error (Adding Tags): " . $MailChimp->getLastError());
+			if ( ! $mailchimp->success() ) {
+				mctwc_log('MailChimp API Error (Adding Tags): ' . $mailchimp->getLastError());
 			} else {
 				$tag_names = array_column($tags_to_apply, 'name');
 				mctwc_log("Successfully added tags to $user_email: " . implode(', ', $tag_names));
 			}
 		} catch ( Exception $e ) {
-			mctwc_log("Exception when adding tags: " . $e->getMessage());
+			mctwc_log('Exception when adding tags: ' . $e->getMessage());
 		}
 	} else {
 		mctwc_log("No tags to apply for order $order_id");
