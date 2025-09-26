@@ -48,21 +48,21 @@ function load_mctwc_integration_class() {
 
 		public function init_form_fields() {
 			$this->form_fields = array(
-				'api_key' => array(
-					'title' => __('MailChimp API Key', 'mctwc'),
-					'type' => 'password',
+				'api_key'       => array(
+					'title'       => __('MailChimp API Key', 'mctwc'),
+					'type'        => 'password',
 					'description' => __('Enter your MailChimp API key.', 'mctwc') . ' <a href="https://mailchimp.com/help/about-api-keys/" target="_blank">' . __('How to get your API key', 'mctwc') . '</a>',
-					'default' => '',
+					'default'     => '',
 					'id' => 'mailchimp_api_key',
 				),
 				'verify_button' => array(
-					'type' => 'button',
-					'title' => '',
+					'type'        => 'button',
+					'title'       => '',
 					'description' => __('Verify & Load Lists', 'mctwc'),
 				),
 				'list_id' => array(
-					'title' => __('MailChimp Audience', 'mctwc'),
-					'type' => 'text',
+					'title'       => __('MailChimp Audience', 'mctwc'),
+					'type'        => 'text',
 					'description' => __('Enter your MailChimp audience/list ID or verify your API key to see a dropdown', 'mctwc'),
 					'default' => '',
 					'id' => 'mailchimp_list_id',
