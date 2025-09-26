@@ -2,7 +2,7 @@
 /**
  * Plugin Name: MailChimp Tags for WooCommerce
  * Description: Assign tags to MailChimp contacts based on specific items purchased from your WooCommerce shop.
- * Version: 0.3.4
+ * Version: 0.3.5
  * Author: Jess A.
  *
  * @package MailChimpTagsForWooCommerce
@@ -37,13 +37,13 @@ function mctwc_add_plugin_settings_link( $links ) {
 function mctwc_log( $message ) {
 	if ( defined('WP_DEBUG') && WP_DEBUG ) {
 		$log_file = plugin_dir_path(__FILE__) . 'mctwc_log.txt';
-		$log_message = date("Y-m-d H:i:s") . " - " . $message . PHP_EOL;
+		$log_message = date("Y-m-d H:i:s") . ' - ' . $message . PHP_EOL;
 		file_put_contents($log_file, $log_message, FILE_APPEND);
 	}
 }
 
 // Initialize this plugin.
-add_action("init", "mctwc_mailchimp_init");
+add_action('init', 'mctwc_mailchimp_init');
 function mctwc_mailchimp_init() {
 
 	mctwc_log('Plugin initialized');
@@ -51,15 +51,15 @@ function mctwc_mailchimp_init() {
 
 // Hook into WooCommerce order status change.
 add_action(
-	"woocommerce_order_status_changed",
-	"mctwc_mailchimp_process_order",
+	'woocommerce_order_status_changed',
+	'mctwc_mailchimp_process_order',
 	15,
 	3,
 );
 
 function mctwc_mailchimp_process_order( $order_id, $old_status, $new_status ) {
 	// Check if the new status is "processing" and the old status is not "processing".
-	if ( $new_status != "processing" || $old_status == "processing" ) {
+	if ( $new_status != 'processing' || $old_status == 'processing' ) {
 		mctwc_log("Order $order_id status change ($old_status → $new_status) doesn't trigger processing");
 		return; // Exit the function if the conditions are not met.
 	}
@@ -132,9 +132,9 @@ function mctwc_mailchimp_process_order( $order_id, $old_status, $new_status ) {
 		if ( $needs_update ) {
 			// Use PATCH to only update merge fields, never change status.
 			$update_result = $mailchimp->patch("lists/$list_id/members/$subscriber_hash", [
-				"merge_fields" => [
-					"FNAME" => $user_first_name,
-					"LNAME" => $user_last_name,
+				'merge_fields' => [
+					'FNAME' => $user_first_name,
+					'LNAME' => $user_last_name,
 				],
 			]);
 
@@ -152,9 +152,9 @@ function mctwc_mailchimp_process_order( $order_id, $old_status, $new_status ) {
 	// Process items and collect tags
 	// ----------------------------------------------------------
 	$items = $order->get_items();
-	mctwc_log("Processing " . count($items) . " items for order $order_id");
+	mctwc_log('Processing ' . count($items) . " items for order $order_id");
 
-	$tags_to_apply = [];
+	$tags_to_apply = array();
 
 	foreach ( $items as $item ) {
 		// Identify the variation ID.
@@ -171,8 +171,8 @@ function mctwc_mailchimp_process_order( $order_id, $old_status, $new_status ) {
 		if ( ! empty($tag_name) ) {
 			mctwc_log("Found tag '$tag_name' for product ID $product_id");
 			$tags_to_apply[] = [
-				"name" => $tag_name,
-				"status" => "active",
+				'name' => $tag_name,
+				'status' => 'active',
 			];
 		} else {
 			mctwc_log("No tag found for product ID $product_id");
@@ -183,19 +183,19 @@ function mctwc_mailchimp_process_order( $order_id, $old_status, $new_status ) {
 	if ( ! empty($tags_to_apply) ) {
 		// If member doesn't exist and we have tags to apply, create as transactional.
 		if ( ! $member_exists ) {
-			mctwc_log("Creating transactional contact to apply tags");
+			mctwc_log('Creating transactional contact to apply tags');
 
 			$result = $mailchimp->put("lists/$list_id/members/$subscriber_hash", [
-				"email_address" => $user_email,
-				"status_if_new" => "transactional",
-				"merge_fields" => [
-					"FNAME" => $user_first_name,
-					"LNAME" => $user_last_name,
+				'email_address' => $user_email,
+				'status_if_new' => 'transactional',
+				'merge_fields' => [
+					'FNAME' => $user_first_name,
+					'LNAME' => $user_last_name,
 				],
 			]);
 
 			if ( ! $mailchimp->success() ) {
-				mctwc_log("Failed to create contact: " . $mailchimp->getLastError());
+				mctwc_log('Failed to create contact: ' . $mailchimp->getLastError());
 				return;
 			} else {
 				mctwc_log("Created new transactional contact for $user_email");
@@ -205,7 +205,7 @@ function mctwc_mailchimp_process_order( $order_id, $old_status, $new_status ) {
 		// Apply tags.
 		try {
 			$tag_result = $mailchimp->post("lists/$list_id/members/$subscriber_hash/tags", [
-				"tags" => $tags_to_apply,
+				'tags' => $tags_to_apply,
 			]);
 
 			if ( ! $mailchimp->success() ) {
