@@ -29,8 +29,8 @@ function load_mctwc_integration_class() {
 
 		public function __construct() {
 			$this->id = 'mailchimp-tags';
-			$this->method_title = __('MailChimp Tags', 'mctwc-sit');
-			$this->method_description = __('Configure the settings for MailChimp audience syncing here.', 'mctwc-sit');
+			$this->method_title = __('MailChimp Tags', 'mctwc');
+			$this->method_description = __('Configure the settings for MailChimp audience syncing here.', 'mctwc');
 
 			// Initialize form fields.
 			$this->init_form_fields();
@@ -40,35 +40,32 @@ function load_mctwc_integration_class() {
 			add_action('woocommerce_update_options_integration_' . $this->id, array( $this, 'process_admin_options' ));
 
 			// Keep your existing AJAX handler.
-			add_action( 'wp_ajax_zendo_get_mailchimp_lists', 'zendo_ajax_get_mailchimp_lists' );
+			add_action( 'wp_ajax_mctwc_get_mailchimp_lists', 'mctwc_ajax_get_mailchimp_lists' );
 
 			// Keep your existing scripts.
 			add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
-
-			// Migrate old settings on first load.
-			$this->migrate_settings();
 		}
 
 		public function init_form_fields() {
 			$this->form_fields = array(
 				'api_key' => array(
-					'title' => __('MailChimp API Key', 'mctwc-sit'),
+					'title' => __('MailChimp API Key', 'mctwc'),
 					'type' => 'password',
-					'description' => __('Enter your MailChimp API key.', 'mctwc-sit') . ' <a href="https://mailchimp.com/help/about-api-keys/" target="_blank">' . __('How to get your API key', 'mctwc-sit') . '</a>',
+					'description' => __('Enter your MailChimp API key.', 'mctwc') . ' <a href="https://mailchimp.com/help/about-api-keys/" target="_blank">' . __('How to get your API key', 'mctwc') . '</a>',
 					'default' => '',
-					'id' => 'mailchimp_api_key', // Keep your existing ID for compatibility.
+					'id' => 'mailchimp_api_key',
 				),
 				'verify_button' => array(
 					'type' => 'button',
 					'title' => '',
-					'description' => __('Verify & Load Lists', 'mctwc-sit'),
+					'description' => __('Verify & Load Lists', 'mctwc'),
 				),
 				'list_id' => array(
-					'title' => __('MailChimp Audience', 'mctwc-sit'),
+					'title' => __('MailChimp Audience', 'mctwc'),
 					'type' => 'text',
-					'description' => __('Enter your MailChimp audience/list ID or verify your API key to see a dropdown', 'mctwc-sit'),
+					'description' => __('Enter your MailChimp audience/list ID or verify your API key to see a dropdown', 'mctwc'),
 					'default' => '',
-					'id' => 'mailchimp_list_id', // Keep your existing ID.
+					'id' => 'mailchimp_list_id',
 					'class' => 'regular-text',
 				),
 			);
@@ -81,10 +78,10 @@ function load_mctwc_integration_class() {
 			<tr valign="top">
 				<th scope="row" class="titledesc"></th>
 				<td class="forminp">
-					<button type="button" id="zendo_verify_api" class="button button-secondary">
+					<button type="button" id="mctwc_verify_api" class="button button-secondary">
 						<?php echo esc_html($data['description']); ?>
 					</button>
-					<div id="zendo_list_container" style="margin-top: 10px;">
+					<div id="mctwc_list_container" style="margin-top: 10px;">
 						<!-- List dropdown will be inserted here by JavaScript -->
 					</div>
 				</td>
@@ -131,7 +128,7 @@ function load_mctwc_integration_class() {
 						<label for="<?php echo esc_attr($data['id']); ?>"><?php echo wp_kses_post($data['title']); ?></label>
 					</th>
 					<td class="forminp">
-						<div id="zendo_list_container_main">
+						<div id="mctwc_list_container_main">
 							<input type="text" 
 								name="<?php echo esc_attr($field_key); ?>" 
 								id="<?php echo esc_attr($data['id']); ?>"
@@ -165,68 +162,35 @@ function load_mctwc_integration_class() {
 			// Keep your existing script enqueue.
 			wp_enqueue_script('jquery');
 			wp_enqueue_script(
-				'zendo-sit-admin',
+				'mctwc-admin',
 				plugin_dir_url(__FILE__) . 'js/admin.js',
-				array('jquery'),
+				array( 'jquery' ),
 				time(),
 				true
 			);
 
-			wp_localize_script('zendo-sit-admin', 'zendo_sit', array(
+			wp_localize_script('mctwc-admin', 'mctwc', array(
 				'ajax_url' => admin_url('admin-ajax.php'),
-				'nonce' => wp_create_nonce('zendo_sit_nonce'),
+				'nonce' => wp_create_nonce('mctwc_nonce'),
 				'loading_text' => 'Loading lists...',
 				'error_text' => 'Error loading lists. Please check your API key and try again.',
 			));
 		}
-
-		// Migrate settings from old location.
-		private function migrate_settings() {
-			// Only migrate if we haven't already.
-			if ( get_option('mctwc_settings_migrated') ) {
-				return;
-			}
-
-			// Get old values.
-			$old_api_key = get_option('mailchimp_api_key');
-			$old_list_id = get_option('mailchimp_list_id');
-
-			// If we have old values and no new values, migrate them.
-			if ( $old_api_key && ! $this->get_option('api_key') ) {
-				$this->update_option('api_key', $old_api_key);
-			}
-
-			if ( $old_list_id && ! $this->get_option('list_id') ) {
-				$this->update_option('list_id', $old_list_id);
-			}
-
-			// Mark as migrated.
-			update_option('mctwc_settings_migrated', '1');
-		}
-
-		// Override process_admin_options to also update old options for compatibility.
-		public function process_admin_options() {
-			parent::process_admin_options();
-
-			// Also update the old options to maintain compatibility with your existing code.
-			update_option('mailchimp_api_key', $this->get_option('api_key'));
-			update_option('mailchimp_list_id', $this->get_option('list_id'));
-		}
 	}
 }
 
-// Keep your existing AJAX handler exactly as is. Prevent any output before our JSON response.
-function zendo_ajax_get_mailchimp_lists() {
+// AJAX handler for getting MailChimp lists.
+function mctwc_ajax_get_mailchimp_lists() {
 	ob_start();
 
 	// Set JSON header.
 	header('Content-Type: application/json');
 
-	error_log('AJAX handler called: zendo_get_mailchimp_lists');
+	error_log('AJAX handler called: mctwc_get_mailchimp_lists');
 
 	try {
 		// Verify nonce for security.
-		if ( ! isset($_POST['nonce']) || ! wp_verify_nonce($_POST['nonce'], 'zendo_sit_nonce') ) {
+		if ( ! isset($_POST['nonce']) || ! wp_verify_nonce($_POST['nonce'], 'mctwc_nonce') ) {
 			throw new Exception('Security check failed');
 		}
 
@@ -296,12 +260,12 @@ function mctwc_create_admin_js() {
 	if ( ! file_exists($js_file) ) {
 		$js_content = <<<'EOT'
 jQuery(document).ready(function($) {
-	$('#zendo_verify_api').on('click', function(e) {
+	$('#mctwc_verify_api').on('click', function(e) {
 		e.preventDefault();
 		
 		// Try both possible field IDs (old and new)
-		var apiKey = $('#mailchimp_api_key').val() || $('#woocommerce_mailchimp-tags_api_key').val();
-		var listContainer = $('#zendo_list_container_main');
+		var apiKey = $('#mailchimp_api_key').val();
+		var listContainer = $('#mctwc_list_container_main');
 		
 		if (!apiKey) {
 			alert('Please enter a MailChimp API key first.');
@@ -309,23 +273,21 @@ jQuery(document).ready(function($) {
 		}
 		
 		// Show loading message
-		listContainer.html('<p>' + zendo_sit.loading_text + '</p>');
+		listContainer.html('<p>' + mctwc.loading_text + '</p>');
 		
 		// Make AJAX call to verify API key and fetch lists
 		$.ajax({
-			url: zendo_sit.ajax_url,
+			url: mctwc.ajax_url,
 			type: 'POST',
 			data: {
-				action: 'zendo_get_mailchimp_lists',
+				action: 'mctwc_get_mailchimp_lists',
 				api_key: apiKey,
-				nonce: zendo_sit.nonce
+				nonce: mctwc.nonce
 			},
 			success: function(response) {
 				if (response.success) {
 					// Build the dropdown with the correct field name
-					var fieldName = $('#woocommerce_mailchimp-tags_list_id').length ? 
-								   'woocommerce_mailchimp-tags_list_id' : 
-								   'mailchimp_list_id';
+					var fieldName = 'woocommerce_mailchimp-tags_list_id';
 					
 					var selectHtml = '<select name="' + fieldName + '" id="mailchimp_list_id">';
 					selectHtml += '<option value="">-- Select a List --</option>';
@@ -342,7 +304,7 @@ jQuery(document).ready(function($) {
 				}
 			},
 			error: function() {
-				listContainer.html('<p class="error">' + zendo_sit.error_text + '</p>');
+				listContainer.html('<p class="error">' + mctwc.error_text + '</p>');
 			}
 		});
 	});

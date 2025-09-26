@@ -24,7 +24,7 @@ function mctwc_add_plugin_settings_link( $links ) {
 	$settings_link = sprintf(
 		'<a href="%s">%s</a>',
 		admin_url('admin.php?page=wc-settings&tab=integration&section=mailchimp-tags'),
-		__('Settings', 'mctwc-sit')
+		__('Settings', 'mctwc')
 	);
 
 	// Add the settings link to the beginning of the links array.
@@ -36,7 +36,7 @@ function mctwc_add_plugin_settings_link( $links ) {
 // Custom logging function.
 function mctwc_log( $message ) {
 	if ( defined('WP_DEBUG') && WP_DEBUG ) {
-		$log_file = plugin_dir_path(__FILE__) . 'mctwc_sit_log.txt';
+		$log_file = plugin_dir_path(__FILE__) . 'mctwc_log.txt';
 		$log_message = date("Y-m-d H:i:s") . " - " . $message . PHP_EOL;
 		file_put_contents($log_file, $log_message, FILE_APPEND);
 	}
@@ -66,9 +66,10 @@ function mctwc_mailchimp_process_order( $order_id, $old_status, $new_status ) {
 
 	mctwc_log("Processing order $order_id: status changed from $old_status to $new_status");
 
-	// Get API key and list ID from options.
-	$mailchimp_api_key = get_option('mailchimp_api_key');
-	$list_id = get_option('mailchimp_list_id');
+	// Get API key and list ID from WooCommerce integration settings.
+	$settings = get_option('woocommerce_mailchimp-tags_settings');
+	$mailchimp_api_key = isset($settings['api_key']) ? $settings['api_key'] : '';
+	$list_id = isset($settings['list_id']) ? $settings['list_id'] : '';
 
 	// Validate API key and list ID.
 	if ( empty($mailchimp_api_key) || empty($list_id) ) {
@@ -164,7 +165,7 @@ function mctwc_mailchimp_process_order( $order_id, $old_status, $new_status ) {
 		mctwc_log("Processing item: $product_name (ID: $product_id, Variation ID: $variation_id)");
 
 		// Read the variation's MailChimp tag from post meta.
-		$tag_name = get_post_meta($product_id, '_mctwc_sit_mailchimp_tag', true);
+		$tag_name = get_post_meta($product_id, '_mctwc_mailchimp_tag', true);
 
 		// If the tag isn't empty, add it to our list.
 		if ( ! empty($tag_name) ) {
@@ -223,24 +224,24 @@ function mctwc_mailchimp_process_order( $order_id, $old_status, $new_status ) {
 
 add_action('woocommerce_product_after_variable_attributes', 'mctwc_add_mailchimp_tag_field_to_variations', 10, 3);
 function mctwc_add_mailchimp_tag_field_to_variations( $loop, $variation_data, $variation ) {
-	$current_value = get_post_meta($variation->ID, '_mctwc_sit_mailchimp_tag', true);
+	$current_value = get_post_meta($variation->ID, '_mctwc_mailchimp_tag', true);
 
 	woocommerce_wp_text_input([
-		'id'          => "_mctwc_sit_mailchimp_tag_{$loop}",
-		'name'        => "mctwc_sit_mailchimp_tag[{$variation->ID}]",
+		'id'          => "_mctwc_mailchimp_tag_{$loop}",
+		'name'        => "mctwc_mailchimp_tag[{$variation->ID}]",
 		'value'       => $current_value,
-		'label'       => __('MailChimp Tag', 'mctwc-sit'),
+		'label'       => __('MailChimp Tag', 'mctwc'),
 		'desc_tip'    => true,
-		'description' => __('Enter the MailChimp tag for this variation', 'mctwc-sit'),
+		'description' => __('Enter the MailChimp tag for this variation', 'mctwc'),
 	]);
 }
 
 add_action('woocommerce_save_product_variation', 'mctwc_save_mailchimp_tag_field_for_variations', 10, 2);
 function mctwc_save_mailchimp_tag_field_for_variations( $variation_id, $loop_index ) {
-	if ( isset($_POST['mctwc_sit_mailchimp_tag'][ $variation_id ]) ) {
-		$tag = sanitize_text_field( $_POST['mctwc_sit_mailchimp_tag'][ $variation_id ] );
-		update_post_meta($variation_id, '_mctwc_sit_mailchimp_tag', $tag);
+	if ( isset($_POST['mctwc_mailchimp_tag'][ $variation_id ]) ) {
+		$tag = sanitize_text_field( $_POST['mctwc_mailchimp_tag'][ $variation_id ] );
+		update_post_meta($variation_id, '_mctwc_mailchimp_tag', $tag);
 	} else {
-		delete_post_meta($variation_id, '_mctwc_sit_mailchimp_tag');
+		delete_post_meta($variation_id, '_mctwc_mailchimp_tag');
 	}
 }

@@ -1,10 +1,10 @@
 jQuery(document).ready(function($) {
-    $('#zendo_verify_api').on('click', function(e) {
+    $('#mctwc_verify_api').on('click', function(e) {
         e.preventDefault();
         
-        // Try both possible field IDs (old and new)
-        var apiKey = $('#mailchimp_api_key').val() || $('#woocommerce_mailchimp-tags_api_key').val();
-        var listContainer = $('#zendo_list_container_main');
+        // Get API key
+        var apiKey = $('#mailchimp_api_key').val();
+        var listContainer = $('#mctwc_list_container_main');
         
         if (!apiKey) {
             alert('Please enter a MailChimp API key first.');
@@ -12,16 +12,16 @@ jQuery(document).ready(function($) {
         }
         
         // Show loading message
-        listContainer.html('<p>' + zendo_sit.loading_text + '</p>');
+        listContainer.html('<p>' + mctwc.loading_text + '</p>');
         
         // Make AJAX call to verify API key and fetch lists
         $.ajax({
-            url: zendo_sit.ajax_url,
+            url: mctwc.ajax_url,
             type: 'POST',
             data: {
-                action: 'zendo_get_mailchimp_lists',
+                action: 'mctwc_get_mailchimp_lists',
                 api_key: apiKey,
-                nonce: zendo_sit.nonce
+                nonce: mctwc.nonce
             },
             success: function(response) {
                 if (response.success) {
@@ -45,7 +45,7 @@ jQuery(document).ready(function($) {
                 }
             },
             error: function() {
-                listContainer.html('<p class="error">' + zendo_sit.error_text + '</p>');
+                listContainer.html('<p class="error">' + mctwc.error_text + '</p>');
             }
         });
     });
