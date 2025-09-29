@@ -51,14 +51,14 @@ function load_mctwc_integration_class() {
 				'api_key'       => array(
 					'title'       => __('MailChimp API Key', 'mctwc'),
 					'type'        => 'password',
-					'description' => __('Enter your MailChimp API key.', 'mctwc') . ' <a href="https://mailchimp.com/help/about-api-keys/" target="_blank">' . __('How to get your API key', 'mctwc') . '</a>',
+					'description' => __('Enter your MailChimp API key.', 'mctwc') . ' <a href="https://mailchimp.com/help/about-api-keys/" target="_blank">' . __('How to generate your API key', 'mctwc') . '</a>',
 					'default'     => '',
 					'id' => 'mailchimp_api_key',
 				),
 				'verify_button' => array(
 					'type'        => 'button',
 					'title'       => '',
-					'description' => __('Verify & Load Lists', 'mctwc'),
+					'description' => __('Verify & Load Audiences', 'mctwc'),
 				),
 				'list_id' => array(
 					'title'       => __('MailChimp Audience', 'mctwc'),
