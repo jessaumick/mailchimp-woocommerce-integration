@@ -3,7 +3,7 @@
  * Plugin Name: MailChimp Tags for WooCommerce
  * Requires Plugins: woocommerce
  * Description: Assign tags to MailChimp contacts based on specific items purchased from your WooCommerce shop.
- * Version: 0.3.6
+ * Version: 0.3.7
  * Author: Jess A.
  *
  * @package MailChimpTagsForWooCommerce
@@ -14,18 +14,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit();
 }
 
-// Include the Composer autoloader.
+// Include dependencies.
 require_once 'vendor/autoload.php';
 require_once plugin_dir_path(__FILE__) . 'sit-settings.php';
 
-// Add settings link to plugin page.
-add_filter('plugin_action_links_' . plugin_basename(__FILE__), 'mctwc_add_plugin_settings_link');
-
+/**
+ * Add settings link to plugin actions.
+ *
+ * @param array $links Existing plugin links.
+ * @return array Updated list of links.
+ */
 function mctwc_add_plugin_settings_link( $links ) {
 	$settings_link = sprintf(
 		'<a href="%s">%s</a>',
-		admin_url('admin.php?page=wc-settings&tab=integration&section=mailchimp-tags'),
-		__('Settings', 'mctwc')
+		admin_url( 'admin.php?page=wc-settings&tab=integration&section=mailchimp-tags' ),
+		__( 'Settings', 'mctwc' )
 	);
 
 	// Add the settings link to the beginning of the links array.
@@ -33,22 +36,29 @@ function mctwc_add_plugin_settings_link( $links ) {
 
 	return $links;
 }
+add_filter('plugin_action_links_' . plugin_basename(__FILE__), 'mctwc_add_plugin_settings_link');
 
-// Custom logging function.
+/**
+ * Log a message to the plugin's log file.
+ *
+ * @param string $message The message to log.
+ * @return void
+ */
 function mctwc_log( $message ) {
 	if ( defined('WP_DEBUG') && WP_DEBUG ) {
-		$log_file = plugin_dir_path(__FILE__) . 'mctwc_log.txt';
-		$log_message = gmdate('Y-m-d H:i:s') . ' - ' . $message . PHP_EOL;
-		file_put_contents($log_file, $log_message, FILE_APPEND);
+		error_log( '[MCTWC] ' . $message );
 	}
 }
-
-// Initialize this plugin.
-add_action('init', 'mctwc_mailchimp_init');
+/**
+ * Initialize this plugin.
+ *
+ * @return void
+ */
 function mctwc_mailchimp_init() {
 
-	mctwc_log('Plugin initialized');
+	mctwc_log( 'Plugin initialized' );
 }
+add_action( 'init', 'mctwc_mailchimp_init' );
 
 // Hook into WooCommerce order status change.
 add_action(
@@ -57,10 +67,17 @@ add_action(
 	15,
 	3,
 );
-
+/**
+ * Sync tags to MailChimp when an order status changes to "processing".
+ *
+ * @param int    $order_id The ID of the WooCommerce order.
+ * @param string $old_status The previous order status.
+ * @param string $new_status The new order status.
+ * @return void
+ */
 function mctwc_mailchimp_process_order( $order_id, $old_status, $new_status ) {
 	// Check if the new status is "processing" and the old status is not "processing".
-	if ( $new_status != 'processing' || $old_status == 'processing' ) {
+	if ( 'processing' !== $new_status || 'processing' === $old_status ) {
 		mctwc_log("Order $order_id status change ($old_status → $new_status) doesn't trigger processing");
 		return; // Exit the function if the conditions are not met.
 	}
@@ -68,9 +85,9 @@ function mctwc_mailchimp_process_order( $order_id, $old_status, $new_status ) {
 	mctwc_log("Processing order $order_id: status changed from $old_status to $new_status");
 
 	// Get API key and list ID from WooCommerce integration settings.
-	$settings = get_option('woocommerce_mailchimp-tags_settings');
+	$settings          = get_option('woocommerce_mailchimp-tags_settings');
 	$mailchimp_api_key = isset($settings['api_key']) ? $settings['api_key'] : '';
-	$list_id = isset($settings['list_id']) ? $settings['list_id'] : '';
+	$list_id           = isset($settings['list_id']) ? $settings['list_id'] : '';
 
 	// Validate API key and list ID.
 	if ( empty($mailchimp_api_key) || empty($list_id) ) {
@@ -87,7 +104,7 @@ function mctwc_mailchimp_process_order( $order_id, $old_status, $new_status ) {
 	}
 
 	// Get the order object and user email.
-	$order = wc_get_order($order_id);
+	$order      = wc_get_order($order_id);
 	$user_email = $order->get_billing_email();
 
 	if ( empty($user_email) ) {
@@ -97,11 +114,11 @@ function mctwc_mailchimp_process_order( $order_id, $old_status, $new_status ) {
 
 	// Get the enrollee's first name and last name from order meta.
 	$enrollee_first_name = trim(get_post_meta($order_id, 'enrollee_first_name', true));
-	$enrollee_last_name = trim(get_post_meta($order_id, 'enrollee_last_name', true));
+	$enrollee_last_name  = trim(get_post_meta($order_id, 'enrollee_last_name', true));
 
 	// If enrollee names are not provided, use billing names as fallback.
 	$user_first_name = $enrollee_first_name ? $enrollee_first_name : trim($order->get_billing_first_name());
-	$user_last_name = $enrollee_last_name ? $enrollee_last_name : trim($order->get_billing_last_name());
+	$user_last_name  = $enrollee_last_name ? $enrollee_last_name : trim($order->get_billing_last_name());
 
 	mctwc_log("Processing tags for: $user_email ($user_first_name $user_last_name)");
 
@@ -111,19 +128,19 @@ function mctwc_mailchimp_process_order( $order_id, $old_status, $new_status ) {
 	// Check if the member exists in MailChimp.
 	$member = $mailchimp->get("lists/$list_id/members/$subscriber_hash");
 
-	$member_exists = false;
+	$member_exists  = false;
 	$current_status = null;
 
 	if ( $mailchimp->success() ) {
-		$member_exists = true;
+		$member_exists  = true;
 		$current_status = isset($member['status']) ? $member['status'] : null;
 		mctwc_log("Found existing member $user_email with status: " . $current_status);
 
 		// Only update merge fields if they're different.
 		$needs_update = false;
 		if ( isset($member['merge_fields']) ) {
-			if ( $member['merge_fields']['FNAME'] != $user_first_name ||
-				$member['merge_fields']['LNAME'] != $user_last_name ) {
+			if ( $member['merge_fields']['FNAME'] !== $user_first_name ||
+				$member['merge_fields']['LNAME'] !== $user_last_name ) {
 				$needs_update = true;
 			}
 		} else {
@@ -132,12 +149,12 @@ function mctwc_mailchimp_process_order( $order_id, $old_status, $new_status ) {
 
 		if ( $needs_update ) {
 			// Use PATCH to only update merge fields, never change status.
-			$update_result = $mailchimp->patch("lists/$list_id/members/$subscriber_hash", [
-				'merge_fields' => [
+			$update_result = $mailchimp->patch("lists/$list_id/members/$subscriber_hash", array(
+				'merge_fields' => array(
 					'FNAME' => $user_first_name,
 					'LNAME' => $user_last_name,
-				],
-			]);
+				),
+			));
 
 			if ( ! $mailchimp->success() ) {
 				mctwc_log('Warning: Could not update merge fields - ' . $mailchimp->getLastError());
@@ -160,7 +177,7 @@ function mctwc_mailchimp_process_order( $order_id, $old_status, $new_status ) {
 	foreach ( $items as $item ) {
 		// Identify the variation ID.
 		$variation_id = $item->get_variation_id();
-		$product_id = $variation_id ? $variation_id : $item->get_product_id();
+		$product_id   = $variation_id ? $variation_id : $item->get_product_id();
 		$product_name = $item->get_name();
 
 		mctwc_log("Processing item: $product_name (ID: $product_id, Variation ID: $variation_id)");
@@ -171,10 +188,10 @@ function mctwc_mailchimp_process_order( $order_id, $old_status, $new_status ) {
 		// If the tag isn't empty, add it to our list.
 		if ( ! empty($tag_name) ) {
 			mctwc_log("Found tag '$tag_name' for product ID $product_id");
-			$tags_to_apply[] = [
-				'name' => $tag_name,
+			$tags_to_apply[] = array(
+				'name'   => $tag_name,
 				'status' => 'active',
-			];
+			);
 		} else {
 			mctwc_log("No tag found for product ID $product_id");
 		}
@@ -186,14 +203,14 @@ function mctwc_mailchimp_process_order( $order_id, $old_status, $new_status ) {
 		if ( ! $member_exists ) {
 			mctwc_log('Creating transactional contact to apply tags');
 
-			$result = $mailchimp->put("lists/$list_id/members/$subscriber_hash", [
+			$result = $mailchimp->put("lists/$list_id/members/$subscriber_hash", array(
 				'email_address' => $user_email,
 				'status_if_new' => 'transactional',
-				'merge_fields' => [
+				'merge_fields'  => array(
 					'FNAME' => $user_first_name,
 					'LNAME' => $user_last_name,
-				],
-			]);
+				),
+			));
 
 			if ( ! $mailchimp->success() ) {
 				mctwc_log('Failed to create contact: ' . $mailchimp->getLastError());
@@ -205,9 +222,9 @@ function mctwc_mailchimp_process_order( $order_id, $old_status, $new_status ) {
 
 		// Apply tags.
 		try {
-			$tag_result = $mailchimp->post("lists/$list_id/members/$subscriber_hash/tags", [
+			$tag_result = $mailchimp->post("lists/$list_id/members/$subscriber_hash/tags", array(
 				'tags' => $tags_to_apply,
-			]);
+			));
 
 			if ( ! $mailchimp->success() ) {
 				mctwc_log('MailChimp API Error (Adding Tags): ' . $mailchimp->getLastError());
@@ -224,20 +241,37 @@ function mctwc_mailchimp_process_order( $order_id, $old_status, $new_status ) {
 }
 
 add_action('woocommerce_product_after_variable_attributes', 'mctwc_add_mailchimp_tag_field_to_variations', 10, 3);
+/**
+ * Add MailChimp tag field to WooCommerce product variations.
+ *
+ * @param int     $loop The current loop index.
+ * @param array   $variation_data The variation data.
+ * @param WP_Post $variation The variation post object.
+ * @return void
+ */
 function mctwc_add_mailchimp_tag_field_to_variations( $loop, $variation_data, $variation ) {
 	$current_value = get_post_meta($variation->ID, '_mctwc_mailchimp_tag', true);
 
-	woocommerce_wp_text_input([
-		'id'          => "_mctwc_mailchimp_tag_{$loop}",
-		'name'        => "mctwc_mailchimp_tag[{$variation->ID}]",
-		'value'       => $current_value,
-		'label'       => __('MailChimp Tag', 'mctwc'),
-		'desc_tip'    => true,
-		'description' => __('Enter the MailChimp tag for this variation', 'mctwc'),
-	]);
+	woocommerce_wp_text_input(
+		array(
+			'id'          => "_mctwc_mailchimp_tag_{$loop}",
+			'name'        => "mctwc_mailchimp_tag[{$variation->ID}]",
+			'value'       => $current_value,
+			'label'       => __('MailChimp Tag', 'mctwc'),
+			'desc_tip'    => true,
+			'description' => __('Enter the MailChimp tag for this variation', 'mctwc'),
+		)
+	);
 }
 
 add_action('woocommerce_save_product_variation', 'mctwc_save_mailchimp_tag_field_for_variations', 10, 2);
+/**
+ * Save MailChimp tag field for product variations.
+ *
+ * @param int $variation_id The ID of this product variant.
+ * @param int $loop_index The loop index for the current variation (unused).
+ * @return void
+ */
 function mctwc_save_mailchimp_tag_field_for_variations( $variation_id, $loop_index ) {
 	if ( isset($_POST['mctwc_mailchimp_tag'][ $variation_id ]) ) {
 		$tag = sanitize_text_field( $_POST['mctwc_mailchimp_tag'][ $variation_id ] );
