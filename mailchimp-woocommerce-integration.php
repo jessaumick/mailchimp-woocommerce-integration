@@ -16,6 +16,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit();
 }
 
+define( 'MCTWC_PLUGIN_FILE', __FILE__ );
+
+/**
+ * Get the plugin version from the plugin header.
+ *
+ * @return string
+ */
+function mctwc_get_version() {
+	static $version = null;
+	if ( null === $version ) {
+		$plugin_data = get_file_data( MCTWC_PLUGIN_FILE, array( 'Version' => 'Version' ) );
+		$version     = $plugin_data['Version'];
+	}
+	return $version;
+}
+
 add_action( 'before_woocommerce_init', function () {
 	if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
 		\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );
@@ -47,16 +63,25 @@ function mctwc_add_plugin_settings_link( $links ) {
 add_filter('plugin_action_links_' . plugin_basename(__FILE__), 'mctwc_add_plugin_settings_link');
 
 /**
- * Logs a message to the PHP error log if WP_DEBUG is enabled.
+ * Log a message using WooCommerce logger.
  *
- * @since 1.0.0
+ * @since 0.3.9
  * @param string $message The message to log.
+ * @param string $level   Log level: emergency|alert|critical|error|warning|notice|info|debug.
  * @return void
  */
-function mctwc_log( $message ) {
-	if ( defined('WP_DEBUG') && WP_DEBUG ) {
-		error_log( '[MCTWC] ' . $message );
+function mctwc_log( $message, $level = 'info' ) {
+	$always_log_levels = array( 'emergency', 'alert', 'critical', 'error', 'warning' );
+
+	if ( ! defined( 'WP_DEBUG' ) || ! WP_DEBUG ) {
+		if ( ! in_array( $level, $always_log_levels, true ) ) {
+			return;
+		}
 	}
+
+	$logger  = wc_get_logger();
+	$context = array( 'source' => 'mailchimp-tags-woocommerce' );
+	$logger->log( $level, $message, $context );
 }
 
 // Hook into WooCommerce order status change.
@@ -78,7 +103,7 @@ add_action(
 function mctwc_mailchimp_process_order( $order_id, $old_status, $new_status ) {
 	// Check if the new status is "processing" and the old status is not "processing".
 	if ( 'processing' !== $new_status || 'processing' === $old_status ) {
-		mctwc_log("Order $order_id status change ($old_status → $new_status) doesn't trigger processing");
+		mctwc_log("Order $order_id status change ($old_status -> $new_status) doesn't trigger processing");
 		return; // Exit the function if the conditions are not met.
 	}
 
@@ -99,7 +124,7 @@ function mctwc_mailchimp_process_order( $order_id, $old_status, $new_status ) {
 	try {
 		$mailchimp = new \DrewM\MailChimp\MailChimp($mailchimp_api_key);
 	} catch ( Exception $e ) {
-		mctwc_log('Failed to initialize MailChimp: ' . $e->getMessage());
+		mctwc_log( 'Failed to initialize MailChimp: ' . $e->getMessage(), 'error' );
 		return;
 	}
 
@@ -164,7 +189,7 @@ function mctwc_mailchimp_process_order( $order_id, $old_status, $new_status ) {
 			));
 
 			if ( ! $mailchimp->success() ) {
-				mctwc_log('Warning: Could not update merge fields - ' . $mailchimp->getLastError());
+				mctwc_log( 'Warning: Could not update merge fields - ' . $mailchimp->getLastError(), 'warning' );
 			} else {
 				mctwc_log("Successfully updated merge fields for $user_email");
 			}
@@ -198,7 +223,7 @@ function mctwc_mailchimp_process_order( $order_id, $old_status, $new_status ) {
 				'status' => 'active',
 			);
 		} else {
-			mctwc_log("No tag found for product ID $product_id");
+			mctwc_log( "No tag found for product ID $product_id", 'debug' );
 		}
 	}
 
@@ -232,7 +257,7 @@ function mctwc_mailchimp_process_order( $order_id, $old_status, $new_status ) {
 			));
 
 			if ( ! $mailchimp->success() ) {
-				mctwc_log('MailChimp API Error (Adding Tags): ' . $mailchimp->getLastError());
+				mctwc_log( 'MailChimp API Error (Adding Tags): ' . $mailchimp->getLastError(), 'error' );
 			} else {
 				$tag_names = array_column($tags_to_apply, 'name');
 				mctwc_log("Successfully added tags to $user_email: " . implode(', ', $tag_names));
@@ -278,6 +303,12 @@ function mctwc_add_mailchimp_tag_field_to_variations( $loop, $variation_data, $v
  * @return void
  */
 function mctwc_save_mailchimp_tag_field_for_variations( $variation_id ) {
+	// Check user can edit this specific variation's parent product.
+	$parent_id = wp_get_post_parent_id( $variation_id );
+	if ( ! current_user_can( 'edit_post', $parent_id ) ) {
+		return;
+	}
+
 	if ( ! isset( $_POST['woocommerce_meta_nonce'] ) ||
 		! wp_verify_nonce( sanitize_key( $_POST['woocommerce_meta_nonce'] ), 'woocommerce_save_data' ) ) {
 		return;
@@ -285,9 +316,9 @@ function mctwc_save_mailchimp_tag_field_for_variations( $variation_id ) {
 
 	if ( isset( $_POST['mctwc_mailchimp_tag'][ $variation_id ] ) ) {
 		$tag = sanitize_text_field( wp_unslash( $_POST['mctwc_mailchimp_tag'][ $variation_id ] ) );
-		update_post_meta($variation_id, '_mctwc_mailchimp_tag', $tag);
+		update_post_meta( $variation_id, '_mctwc_mailchimp_tag', $tag );
 	} else {
-		delete_post_meta($variation_id, '_mctwc_mailchimp_tag');
+		delete_post_meta( $variation_id, '_mctwc_mailchimp_tag' );
 	}
 }
-add_action('woocommerce_save_product_variation', 'mctwc_save_mailchimp_tag_field_for_variations', 10, 2);
+add_action( 'woocommerce_save_product_variation', 'mctwc_save_mailchimp_tag_field_for_variations' );

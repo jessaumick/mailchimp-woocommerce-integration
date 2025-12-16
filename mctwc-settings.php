@@ -5,7 +5,7 @@
  * @package MailChimpTagsForWooCommerce
  */
 
-if ( ! defined ( 'ABSPATH' ) ) {
+if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
@@ -62,7 +62,6 @@ function load_mctwc_integration_class() {
 			$this->init_settings();
 
 			add_action('woocommerce_update_options_integration_' . $this->id, array( $this, 'process_admin_options' ));
-			add_action( 'wp_ajax_mctwc_get_mailchimp_lists', 'mctwc_ajax_get_mailchimp_lists' );
 			add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 		}
 		/**
@@ -207,35 +206,44 @@ function load_mctwc_integration_class() {
 				return;
 			}
 
-			if ( ! isset($_GET['tab'] ) || 'integration' !== $_GET['tab'] ) {
+			// Sanitize GET parameters.
+			$tab     = isset( $_GET['tab'] ) ? sanitize_text_field( wp_unslash( $_GET['tab'] ) ) : '';
+			$section = isset( $_GET['section'] ) ? sanitize_text_field( wp_unslash( $_GET['section'] ) ) : '';
+
+			if ( 'integration' !== $tab ) {
 				return;
 			}
 
-			if ( isset($_GET['section']) && $this->id !== $_GET['section'] ) {
+			if ( ! empty( $section ) && $this->id !== $section ) {
 				return;
 			}
 
-			wp_enqueue_script('jquery');
+			wp_enqueue_script( 'jquery' );
 			wp_enqueue_script(
-				'mctwc-admin',
-				plugin_dir_url(__FILE__) . 'js/admin.js',
-				array( 'jquery' ),
-				time(),
-				true
+			'mctwc-admin',
+			plugin_dir_url( __FILE__ ) . 'js/admin.js',
+			array( 'jquery' ),
+			mctwc_get_version(),
+			true
 			);
 
-			wp_localize_script('mctwc-admin', 'mctwc', array(
+			wp_localize_script(
+			'mctwc-admin',
+			'mctwc',
+			array(
 				'ajax_url'       => admin_url( 'admin-ajax.php' ),
 				'nonce'          => wp_create_nonce( 'mctwc_nonce' ),
 				'button_text'    => __( 'Verify & Load Audiences', 'mctwc' ),
 				'verifying_text' => __( 'Verifying...', 'mctwc' ),
-				'loading_text'   => __( 'Loading lists...', 'mctwc' ),
-				'error_text'     => __( 'Error loading lists. Please check your API key and try again.', 'mctwc' ),
-			));
+				'loading_text'   => __( 'Loading audiences...', 'mctwc' ),
+				'error_text'     => __( 'Error loading audiences. Please check your API key and try again.', 'mctwc' ),
+			)
+			);
 		}
 	}
 }
 add_action( 'plugins_loaded', 'load_mctwc_integration_class', 11 );
+add_action( 'wp_ajax_mctwc_get_mailchimp_lists', 'mctwc_ajax_get_mailchimp_lists' );
 
 /**
  * AJAX handler to verify MailChimp API key and retrieve audience lists.
@@ -249,9 +257,6 @@ function mctwc_ajax_get_mailchimp_lists() {
 		wp_send_json_error( array( 'message' => 'Unauthorized' ) );
 	}
 	ob_start();
-
-	// Set JSON header.
-	header('Content-Type: application/json');
 
 	try {
 		// Verify nonce for security.
