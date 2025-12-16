@@ -1,7 +1,6 @@
 jQuery(document).ready(function ($) {
 	$('#mctwc_verify_api').on('click', function (e) {
 		e.preventDefault();
-		// Get API key.
 		const apiKey = $('#mailchimp_api_key').val();
 		const listContainer = $('#mctwc_list_container_main');
 		if (!apiKey) {
@@ -10,9 +9,12 @@ jQuery(document).ready(function ($) {
 			);
 			return;
 		}
-		// Show loading message
-		listContainer.html('<p>' + mctwc.loading_text + '</p>');
-		// Make AJAX call to verify API key and fetch lists.
+		const $button = $(this);
+
+		// Disable button during request
+		$button.prop('disabled', true).text(mctwc.verifying_text);
+		listContainer.html($('<p>', { text: mctwc.loading_text }));
+
 		$.ajax({
 			url: mctwc.ajax_url,
 			type: 'POST',
@@ -21,44 +23,58 @@ jQuery(document).ready(function ($) {
 				api_key: apiKey,
 				nonce: mctwc.nonce,
 			},
-			success: function (response) {
+			success(response) {
 				if (response.success) {
-					// Build the dropdown with the correct field name.
 					const fieldName = $('#woocommerce_mailchimp-tags_list_id')
 						.length
 						? 'woocommerce_mailchimp-tags_list_id'
 						: 'mailchimp_list_id';
 
-					let selectHtml =
-						'<select name="' +
-						fieldName +
-						'" id="mailchimp_list_id">';
-					selectHtml +=
-						'<option value="">-- Select Audience --</option>';
-
-					$.each(response.data.lists, function (index, audience) {
-						selectHtml +=
-							'<option value="' +
-							audience.id +
-							'">' +
-							audience.name +
-							'</option>';
+					// jQuery escapes audience.name automatically.
+					const $select = $('<select>', {
+						name: fieldName,
+						id: 'mailchimp_list_id',
 					});
 
-					selectHtml += '</select>';
-					selectHtml +=
-						'<p class="description">Select your MailChimp audience/list</p>';
-					listContainer.html(selectHtml);
+					$select.append(
+						$('<option>', {
+							value: '',
+							text: '-- Select Audience --',
+						})
+					);
+
+					$.each(response.data.lists, function (index, audience) {
+						$select.append(
+							$('<option>', {
+								value: audience.id,
+								text: audience.name,
+							})
+						);
+					});
+
+					listContainer
+						.empty()
+						.append($select)
+						.append(
+							'<p class="description">Select your MailChimp audience</p>'
+						);
 				} else {
 					listContainer.html(
-						'<p class="error">' + response.data.message + '</p>'
+						$('<p>', {
+							class: 'error',
+							text: response.data.message,
+						})
 					);
 				}
 			},
-			error: function () {
+			error() {
 				listContainer.html(
-					'<p class="error">' + mctwc.error_text + '</p>'
+					$('<p>', { class: 'error', text: mctwc.error_text })
 				);
+			},
+			complete() {
+				// Re-enable button regardless of success/failure.
+				$button.prop('disabled', false).text(mctwc.button_text);
 			},
 		});
 	});
