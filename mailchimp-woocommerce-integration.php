@@ -3,7 +3,7 @@
  * Plugin Name: MailChimp Tags for WooCommerce
  * Requires Plugins: woocommerce
  * Description: Assign tags to MailChimp contacts based on specific items purchased from your WooCommerce shop.
- * Version: 0.3.9
+ * Version: 0.4.0
  * Author: Jess A.
  * License: GPL-2.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -17,6 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 define( 'MCTWC_PLUGIN_FILE', __FILE__ );
+define( 'MCTWC_META_KEY_VARIATION_TAG', '_mctwc_mailchimp_tag' );
+define( 'MCTWC_META_KEY_PRODUCT_TAG', '_mctwc_mailchimp_product_tag' );
+define( 'MCTWC_SETTINGS_KEY', 'woocommerce_mailchimp-tags_settings' );
 
 /**
  * Get the plugin version from the plugin header.
@@ -104,13 +107,13 @@ function mctwc_mailchimp_process_order( $order_id, $old_status, $new_status ) {
 	// Check if the new status is "processing" and the old status is not "processing".
 	if ( 'processing' !== $new_status || 'processing' === $old_status ) {
 		mctwc_log("Order $order_id status change ($old_status -> $new_status) doesn't trigger processing");
-		return; // Exit the function if the conditions are not met.
+		return;
 	}
 
 	mctwc_log("Processing order $order_id: status changed from $old_status to $new_status");
 
 	// Get API key and list ID from WooCommerce integration settings.
-	$settings          = get_option('woocommerce_mailchimp-tags_settings');
+	$settings          = get_option( MCTWC_SETTINGS_KEY );
 	$mailchimp_api_key = isset($settings['api_key']) ? $settings['api_key'] : '';
 	$list_id           = isset($settings['list_id']) ? $settings['list_id'] : '';
 
@@ -140,7 +143,6 @@ function mctwc_mailchimp_process_order( $order_id, $old_status, $new_status ) {
 		return;
 	}
 
-	// Get the user's first name and last name from order meta.
 	$user_first_name = apply_filters(
 	'mctwc_subscriber_first_name',
 	trim( $order->get_billing_first_name() ),
@@ -205,31 +207,42 @@ function mctwc_mailchimp_process_order( $order_id, $old_status, $new_status ) {
 	$tags_to_apply = array();
 
 	foreach ( $items as $item ) {
-		// Identify the variation ID.
 		$variation_id = $item->get_variation_id();
-		$product_id   = $variation_id ? $variation_id : $item->get_product_id();
+		$parent_id    = $item->get_product_id();
 		$product_name = $item->get_name();
 
-		mctwc_log("Processing item: $product_name (ID: $product_id, Variation ID: $variation_id)");
+		mctwc_log( "Processing item: $product_name (Product ID: $parent_id, Variation ID: $variation_id)" );
 
-		// Read the variation's MailChimp tag from post meta.
-		$tag_name = get_post_meta($product_id, '_mctwc_mailchimp_tag', true);
-
-		// If the tag isn't empty, add it to our list.
-		if ( ! empty($tag_name) ) {
-			mctwc_log("Found tag '$tag_name' for product ID $product_id");
+		// Get parent/simple product tag.
+		$product_tag = get_post_meta( $parent_id, MCTWC_META_KEY_PRODUCT_TAG, true );
+		if ( ! empty( $product_tag ) ) {
+			mctwc_log( "Found product tag '$product_tag' for product ID $parent_id" );
 			$tags_to_apply[] = array(
-				'name'   => $tag_name,
+				'name'   => $product_tag,
 				'status' => 'active',
 			);
-		} else {
-			mctwc_log( "No tag found for product ID $product_id", 'debug' );
+		}
+
+		// Get variation tag if this is a variation.
+		if ( $variation_id ) {
+			$variation_tag = get_post_meta( $variation_id, MCTWC_META_KEY_VARIATION_TAG, true );
+			if ( ! empty( $variation_tag ) ) {
+				mctwc_log( "Found variation tag '$variation_tag' for variation ID $variation_id" );
+				$tags_to_apply[] = array(
+					'name'   => $variation_tag,
+					'status' => 'active',
+				);
+			}
+		}
+
+		if ( empty( $product_tag ) && empty( $variation_tag ) ) {
+			mctwc_log( "No tags found for product ID $parent_id", 'debug' );
 		}
 	}
 
 	// Apply tags or create contact if needed.
+	$tags_to_apply = array_unique( $tags_to_apply, SORT_REGULAR );
 	if ( ! empty($tags_to_apply) ) {
-		// If member doesn't exist and we have tags to apply, create as transactional.
 		if ( ! $member_exists ) {
 			mctwc_log('Creating transactional contact to apply tags');
 
@@ -270,7 +283,6 @@ function mctwc_mailchimp_process_order( $order_id, $old_status, $new_status ) {
 	}
 }
 
-add_action('woocommerce_product_after_variable_attributes', 'mctwc_add_mailchimp_tag_field_to_variations', 10, 3);
 /**
  * Add MailChimp tag field to WooCommerce product variations.
  *
@@ -281,7 +293,7 @@ add_action('woocommerce_product_after_variable_attributes', 'mctwc_add_mailchimp
  * @return void
  */
 function mctwc_add_mailchimp_tag_field_to_variations( $loop, $variation_data, $variation ) {
-	$current_value = get_post_meta($variation->ID, '_mctwc_mailchimp_tag', true);
+	$current_value = get_post_meta($variation->ID, MCTWC_META_KEY_VARIATION_TAG, true);
 
 	woocommerce_wp_text_input(
 		array(
@@ -294,6 +306,7 @@ function mctwc_add_mailchimp_tag_field_to_variations( $loop, $variation_data, $v
 		)
 	);
 }
+add_action('woocommerce_product_after_variable_attributes', 'mctwc_add_mailchimp_tag_field_to_variations', 10, 3);
 
 /**
  * Save MailChimp tag field for product variations.
@@ -316,9 +329,61 @@ function mctwc_save_mailchimp_tag_field_for_variations( $variation_id ) {
 
 	if ( isset( $_POST['mctwc_mailchimp_tag'][ $variation_id ] ) ) {
 		$tag = sanitize_text_field( wp_unslash( $_POST['mctwc_mailchimp_tag'][ $variation_id ] ) );
-		update_post_meta( $variation_id, '_mctwc_mailchimp_tag', $tag );
+		update_post_meta( $variation_id, MCTWC_META_KEY_VARIATION_TAG, $tag );
 	} else {
-		delete_post_meta( $variation_id, '_mctwc_mailchimp_tag' );
+		delete_post_meta( $variation_id, MCTWC_META_KEY_VARIATION_TAG );
 	}
 }
 add_action( 'woocommerce_save_product_variation', 'mctwc_save_mailchimp_tag_field_for_variations' );
+
+add_action( 'woocommerce_product_options_general_product_data', 'mctwc_add_mailchimp_tag_field_to_products' );
+/**
+ * Add MailChimp tag field to WooCommerce products (simple and variable).
+ *
+ * Displays in the General tab of the product edit screen.
+ *
+ * @since 1.0.0
+ * @return void
+ */
+function mctwc_add_mailchimp_tag_field_to_products() {
+	global $post;
+
+	$current_value = get_post_meta( $post->ID, MCTWC_META_KEY_PRODUCT_TAG, true );
+
+	woocommerce_wp_text_input(
+		array(
+			'id'          => '_mctwc_mailchimp_product_tag',
+			'name'        => '_mctwc_mailchimp_product_tag',
+			'value'       => $current_value,
+			'label'       => __( 'MailChimp Tag', 'mctwc' ),
+			'desc_tip'    => true,
+			'description' => __( 'Tag applied when this product is purchased. For variable products, this tag applies to all variations.', 'mctwc' ),
+		)
+	);
+}
+
+add_action( 'woocommerce_process_product_meta', 'mctwc_save_mailchimp_tag_field_for_products' );
+/**
+ * Save MailChimp tag field for products.
+ *
+ * @since 1.0.0
+ * @param int $post_id The product post ID.
+ * @return void
+ */
+function mctwc_save_mailchimp_tag_field_for_products( $post_id ) {
+	if ( ! current_user_can( 'edit_post', $post_id ) ) {
+		return;
+	}
+
+	if ( ! isset( $_POST['woocommerce_meta_nonce'] ) ||
+		! wp_verify_nonce( sanitize_key( $_POST['woocommerce_meta_nonce'] ), 'woocommerce_save_data' ) ) {
+		return;
+	}
+
+	if ( isset( $_POST['_mctwc_mailchimp_product_tag'] ) ) {
+		$tag = sanitize_text_field( wp_unslash( $_POST['_mctwc_mailchimp_product_tag'] ) );
+		update_post_meta( $post_id, MCTWC_META_KEY_PRODUCT_TAG, $tag );
+	} else {
+		delete_post_meta( $post_id, MCTWC_META_KEY_PRODUCT_TAG );
+	}
+}
