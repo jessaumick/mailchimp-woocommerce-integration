@@ -157,7 +157,7 @@ function mctwc_mailchimp_process_order( $order_id, $old_status, $new_status ) {
 		$order
 	);
 
-	$user_last_name  = apply_filters(
+	$user_last_name = apply_filters(
 		'mctwc_subscriber_last_name',
 		trim( $order->get_billing_last_name() ),
 		$order
