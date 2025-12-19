@@ -1,19 +1,47 @@
 jQuery(document).ready(function ($) {
-	$('#mctwc_verify_api').on('click', function (e) {
-		e.preventDefault();
+	function getSavedListId() {
+		return (
+			$('#mailchimp_list_id').val() ||
+			$('#woocommerce_mailchimp-tags_list_id').val() ||
+			$('input[name="woocommerce_mailchimp-tags_list_id"]').val() ||
+			''
+		);
+	}
+
+	const initialListId = getSavedListId();
+
+	/**
+	 * Load audiences from Mailchimp API.
+	 *
+	 * @param {Object}   options            - Configuration options.
+	 * @param {boolean}  options.showStatus - Whether to show connection status message.
+	 * @param {Function} options.onComplete - Callback function when request completes.
+	 */
+	function loadAudiences(options) {
+		const settings = $.extend(
+			{
+				showStatus: false,
+				onComplete: null,
+			},
+			options
+		);
+
 		const apiKey = $('#mailchimp_api_key').val();
-		const listContainer = $('#mctwc_list_container_main');
+		const savedListId = initialListId || getSavedListId();
+
 		if (!apiKey) {
-			listContainer.html(
-				'<p class="error">Please enter a MailChimp API key first.</p>'
-			);
+			if (settings.onComplete) {
+				settings.onComplete();
+			}
 			return;
 		}
-		const $button = $(this);
 
-		// Disable button during request
-		$button.prop('disabled', true).text(mctwc.verifying_text);
-		listContainer.html($('<p>', { text: mctwc.loading_text }));
+		const listContainer = $('#mctwc_list_container_main');
+
+		listContainer.html(
+			'<span class="spinner is-active" style="float: none;"></span> ' +
+				mctwc.loading_text
+		);
 
 		$.ajax({
 			url: mctwc.ajax_url,
@@ -25,12 +53,15 @@ jQuery(document).ready(function ($) {
 			},
 			success(response) {
 				if (response.success) {
-					const fieldName = $('#woocommerce_mailchimp-tags_list_id')
-						.length
-						? 'woocommerce_mailchimp-tags_list_id'
-						: 'mailchimp_list_id';
+					// Only show status message when explicitly requested (button click)
+					if (settings.showStatus) {
+						$('#mctwc_api_status').html(
+							'<span style="color: #00a32a; margin-left: 10px;">&#10003; Connected</span>'
+						);
+					}
 
-					// jQuery escapes audience.name automatically.
+					const fieldName = 'woocommerce_mailchimp-tags_list_id';
+
 					const $select = $('<select>', {
 						name: fieldName,
 						id: 'mailchimp_list_id',
@@ -44,36 +75,94 @@ jQuery(document).ready(function ($) {
 					);
 
 					$.each(response.data.lists, function (index, audience) {
-						$select.append(
-							$('<option>', {
-								value: audience.id,
-								text: audience.name,
-							})
-						);
+						const $option = $('<option>', {
+							value: audience.id,
+							text: audience.name,
+						});
+
+						// Pre-select if this matches the saved value
+						if (savedListId && audience.id === savedListId) {
+							$option.prop('selected', true);
+						}
+
+						$select.append($option);
 					});
 
+					listContainer.empty().append($select);
+				} else {
+					// Always show error messages so users know something went wrong
+					$('#mctwc_api_status').html(
+						'<span style="color: #d63638; margin-left: 10px;">&#10007; ' +
+							response.data.message +
+							'</span>'
+					);
 					listContainer
 						.empty()
-						.append($select)
 						.append(
-							'<p class="description">Select your MailChimp audience</p>'
+							$('<input>', {
+								type: 'text',
+								name: 'woocommerce_mailchimp-tags_list_id',
+								id: 'mailchimp_list_id',
+								value: savedListId,
+								class: 'regular-text',
+							})
+						)
+						.append(
+							'<p class="description">Enter your Mailchimp audience/list ID or verify your API key to see a dropdown.</p>'
 						);
-				} else {
-					listContainer.html(
-						$('<p>', {
-							class: 'error',
-							text: response.data.message,
-						})
-					);
 				}
 			},
 			error() {
-				listContainer.html(
-					$('<p>', { class: 'error', text: mctwc.error_text })
+				$('#mctwc_api_status').html(
+					'<span style="color: #d63638; margin-left: 10px;">&#10007; Connection failed</span>'
 				);
+				listContainer
+					.empty()
+					.append(
+						$('<input>', {
+							type: 'text',
+							name: 'woocommerce_mailchimp-tags_list_id',
+							id: 'mailchimp_list_id',
+							value: savedListId,
+							class: 'regular-text',
+						})
+					)
+					.append(
+						'<p class="description">Enter your Mailchimp audience/list ID or verify your API key to see a dropdown.</p>'
+					);
 			},
 			complete() {
-				// Re-enable button regardless of success/failure.
+				if (settings.onComplete) {
+					settings.onComplete();
+				}
+			},
+		});
+	}
+
+	// Auto-load audiences on page load if API key exists (without status message)
+	if ($('#mailchimp_api_key').val()) {
+		loadAudiences({ showStatus: false });
+	}
+
+	// Button click handler - shows status message
+	$('#mctwc_verify_api').on('click', function (e) {
+		e.preventDefault();
+		const apiKey = $('#mailchimp_api_key').val();
+
+		if (!apiKey) {
+			$('#mctwc_api_status').html(
+				'<span style="color: #d63638; margin-left: 10px;">Please enter an API key first.</span>'
+			);
+			return;
+		}
+
+		const $button = $(this);
+		$button.prop('disabled', true).text(mctwc.verifying_text);
+		$('#mctwc_api_status').html('');
+
+		loadAudiences({
+			showStatus: true,
+			onComplete() {
 				$button.prop('disabled', false).text(mctwc.button_text);
 			},
 		});

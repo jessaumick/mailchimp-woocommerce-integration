@@ -1,11 +1,11 @@
 {
-    "name": "zendoproject/mailchimpintegration",
-    "description": "WordPress plugin allows users to tag MailChimp contacts based on WooCommerce purchases.",
+    "name": "jess/wc-tags-for-mailchimp",
+    "description": "WordPress plugin allows users to tag Mailchimp contacts based on WooCommerce purchases.",
     "type": "wordpress-plugin",
     "require": {
         "drewm/mailchimp-api": "^2.5"
     },
-    "license": "MIT",
+    "license": "GPL-2.0-or-later",
     "authors": [
         {
             "name": "Jess A."
