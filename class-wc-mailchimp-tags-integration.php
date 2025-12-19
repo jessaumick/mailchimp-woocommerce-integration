@@ -53,8 +53,8 @@ function mctwc_load_integration_class() {
 		 */
 		public function __construct() {
 			$this->id                 = 'mailchimp-tags';
-			$this->method_title       = __('Product Tags for Mailchimp', 'mctwc');
-			$this->method_description = __('Configure the settings for Mailchimp audience tagging here.', 'mctwc');
+			$this->method_title       = __('Product Tags for Mailchimp', 'wc-product-tags-for-mailchimp');
+			$this->method_description = __('Configure the settings for Mailchimp audience tagging here.', 'wc-product-tags-for-mailchimp');
 			$this->init_form_fields();
 			$this->init_settings();
 
@@ -70,28 +70,28 @@ function mctwc_load_integration_class() {
 		public function init_form_fields() {
 			$this->form_fields = array(
 				'api_key'    => array(
-					'title'       => __('Mailchimp API Key', 'mctwc'),
+					'title'       => __('Mailchimp API Key', 'wc-product-tags-for-mailchimp'),
 					'type'        => 'password',
-					'description' => __( 'Found in Mailchimp under Profile &rarr; Extras &rarr; API keys.', 'mctwc' ) . ' <a href="https://mailchimp.com/help/about-api-keys/" target="_blank">' . __( 'Learn more', 'mctwc' ) . '</a>',
+					'description' => __( 'Found in Mailchimp under Profile &rarr; Extras &rarr; API keys.', 'wc-product-tags-for-mailchimp' ) . ' <a href="https://mailchimp.com/help/about-api-keys/" target="_blank">' . __( 'Learn more', 'wc-product-tags-for-mailchimp' ) . '</a>',
 					'default'     => '',
 					'id'          => 'mailchimp_api_key',
 				),
 				'list_id'    => array(
-					'title'       => __('Mailchimp Audience', 'mctwc'),
+					'title'       => __('Mailchimp Audience', 'wc-product-tags-for-mailchimp'),
 					'type'        => 'text',
-					'description' => __('Enter your Mailchimp audience/list ID or verify your API key to see a dropdown.', 'mctwc'),
+					'description' => __('Enter your Mailchimp audience/list ID or verify your API key to see a dropdown.', 'wc-product-tags-for-mailchimp'),
 					'default'     => '',
 					'id'          => 'mailchimp_list_id',
 					'class'       => 'regular-text',
 				),
 				'global_tag' => array(
-					'title'       => __( 'Global Tag', 'mctwc' ),
+					'title'       => __( 'Global Tag', 'wc-product-tags-for-mailchimp' ),
 					'type'        => 'text',
-					'description' => __( 'Optional. This tag will be applied to all purchases, in addition to any product-specific tags.', 'mctwc' ),
+					'description' => __( 'Optional. This tag will be applied to all purchases, in addition to any product-specific tags.', 'wc-product-tags-for-mailchimp' ),
 					'default'     => '',
 					'id'          => 'mailchimp_global_tag',
 					'class'       => 'regular-text',
-					'placeholder' => __( 'e.g., Customer', 'mctwc' ),
+					'placeholder' => __( 'e.g., Customer', 'wc-product-tags-for-mailchimp' ),
 				),
 			);
 		}
@@ -123,7 +123,7 @@ function mctwc_load_integration_class() {
 				value="<?php echo esc_attr( $value ); ?>" 
 				class="regular-text" />
 			<button type="button" id="mctwc_verify_api" class="button button-secondary">
-				<?php esc_html_e( 'Verify & Load Audiences', 'mctwc' ); ?>
+				<?php esc_html_e( 'Verify & Load Audiences', 'wc-product-tags-for-mailchimp' ); ?>
 			</button>
 			<span id="mctwc_api_status"></span>
 			<p class="description"><?php echo wp_kses_post( $data['description'] ); ?></p>
@@ -183,8 +183,9 @@ function mctwc_load_integration_class() {
 			if ( 'woocommerce_page_wc-settings' !== $hook ) {
 				return;
 			}
-
-			$tab     = isset( $_GET['tab'] ) ? sanitize_text_field( wp_unslash( $_GET['tab'] ) ) : '';
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Reading URL parameters for conditional script loading only.
+			$tab = isset( $_GET['tab'] ) ? sanitize_text_field( wp_unslash( $_GET['tab'] ) ) : '';
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Reading URL parameters for conditional script loading only.
 			$section = isset( $_GET['section'] ) ? sanitize_text_field( wp_unslash( $_GET['section'] ) ) : '';
 
 			if ( 'integration' !== $tab ) {
@@ -209,11 +210,11 @@ function mctwc_load_integration_class() {
 				'mctwc',
 			array(
 				'ajax_url'       => admin_url( 'admin-ajax.php' ),
-				'nonce'          => wp_create_nonce( 'mctwc_nonce' ),
-				'button_text'    => __( 'Verify & Load Audiences', 'mctwc' ),
-				'verifying_text' => __( 'Verifying...', 'mctwc' ),
-				'loading_text'   => __( 'Loading audiences...', 'mctwc' ),
-				'error_text'     => __( 'Error loading audiences. Please check your API key and try again.', 'mctwc' ),
+				'nonce'          => wp_create_nonce( 'wc-product-tags-for-mailchimp_nonce' ),
+				'button_text'    => __( 'Verify & Load Audiences', 'wc-product-tags-for-mailchimp' ),
+				'verifying_text' => __( 'Verifying...', 'wc-product-tags-for-mailchimp' ),
+				'loading_text'   => __( 'Loading audiences...', 'wc-product-tags-for-mailchimp' ),
+				'error_text'     => __( 'Error loading audiences. Please check your API key and try again.', 'wc-product-tags-for-mailchimp' ),
 			)
 			);
 		}

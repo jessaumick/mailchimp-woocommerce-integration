@@ -10,7 +10,7 @@
  * Requires PHP: 7.4
  * License: GPL-2.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
- * Text Domain: mctwc
+ * Text Domain: wc-product-tags-for-mailchimp
  *
  * @package MailchimpTagsForWooCommerce
  */
@@ -68,7 +68,7 @@ function mctwc_add_plugin_settings_link( $links ) {
 	$settings_link = sprintf(
 		'<a href="%s">%s</a>',
 		admin_url( 'admin.php?page=wc-settings&tab=integration&section=mailchimp-tags' ),
-		__( 'Settings', 'mctwc' )
+		__( 'Settings', 'wc-product-tags-for-mailchimp' )
 	);
 
 	array_unshift($links, $settings_link);
@@ -309,9 +309,9 @@ function mctwc_add_variation_field( $loop, $variation_data, $variation ) {
 			'id'          => "_mctwc_mailchimp_tag_{$loop}",
 			'name'        => "mctwc_mailchimp_tag[{$variation->ID}]",
 			'value'       => $current_value,
-			'label'       => __('Mailchimp Tag', 'mctwc'),
+			'label'       => __('Mailchimp Tag', 'wc-product-tags-for-mailchimp'),
 			'desc_tip'    => true,
-			'description' => __('Enter the Mailchimp tag for this variation.', 'mctwc'),
+			'description' => __('Enter the Mailchimp tag for this variation.', 'wc-product-tags-for-mailchimp'),
 		)
 	);
 }
@@ -359,9 +359,9 @@ function mctwc_add_product_field() {
 			'id'          => '_mctwc_mailchimp_product_tag',
 			'name'        => '_mctwc_mailchimp_product_tag',
 			'value'       => $current_value,
-			'label'       => __( 'Mailchimp Tag', 'mctwc' ),
+			'label'       => __( 'Mailchimp Tag', 'wc-product-tags-for-mailchimp' ),
 			'desc_tip'    => true,
-			'description' => __( 'Tag applied when this product is purchased. For variable products, this tag applies to all variations.', 'mctwc' ),
+			'description' => __( 'Tag applied when this product is purchased. For variable products, this tag applies to all variations.', 'wc-product-tags-for-mailchimp' ),
 		)
 	);
 }
