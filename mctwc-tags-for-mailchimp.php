@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: WC Product Tags for Mailchimp
+ * Plugin Name: Purchase Tagger - Product-Based Mailchimp Tags
  * Requires Plugins: woocommerce
  * Description: Assign tags to Mailchimp contacts based on specific items purchased from your WooCommerce shop.
  * Version: 1.0.0
@@ -10,9 +10,9 @@
  * Requires PHP: 7.4
  * License: GPL-2.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
- * Text Domain: wc-product-tags-for-mailchimp
+ * Text Domain: purchase-tagger-for-mailchimp
  *
- * @package MailchimpTagsForWooCommerce
+ * @package PurchaseTagger
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -49,13 +49,13 @@ if ( ! file_exists( $mctwc_autoload_path ) ) {
 	add_action(
 		'admin_notices',
 		function () {
-			echo '<div class="error"><p><strong>Mailchimp Tags for WooCommerce:</strong> Dependencies not installed. Please run <code>composer install</code> in the plugin directory, or install the plugin from WordPress.org.</p></div>';
+			echo '<div class="error"><p><strong>Purchase Tagger - Product-Based Mailchimp Tags:</strong> Dependencies not installed. Please run <code>composer install</code> in the plugin directory, or install the plugin from WordPress.org.</p></div>';
 		}
 	);
 	return;
 }
 require_once $mctwc_autoload_path;
-require_once plugin_dir_path( __FILE__ ) . 'class-wc-mailchimp-tags-integration.php';
+require_once plugin_dir_path( __FILE__ ) . 'class-mctwc-mailchimp-tags-integration.php';
 
 /**
  * Add settings link to plugin actions.
@@ -68,7 +68,7 @@ function mctwc_add_plugin_settings_link( $links ) {
 	$settings_link = sprintf(
 		'<a href="%s">%s</a>',
 		admin_url( 'admin.php?page=wc-settings&tab=integration&section=mailchimp-tags' ),
-		__( 'Settings', 'wc-product-tags-for-mailchimp' )
+		__( 'Settings', 'purchase-tagger-for-mailchimp' )
 	);
 
 	array_unshift($links, $settings_link);
@@ -95,7 +95,7 @@ function mctwc_log( $message, $level = 'info' ) {
 	}
 
 	$logger  = wc_get_logger();
-	$context = array( 'source' => 'mailchimp-tags-woocommerce' );
+	$context = array( 'source' => 'purchase-tagger-for-mailchimp' );
 	$logger->log( $level, $message, $context );
 }
 
@@ -242,7 +242,6 @@ function mctwc_mailchimp_process_order( $order_id, $old_status, $new_status ) {
 		}
 	}
 
-	// Add global tag if configured.
 	if ( ! empty( $global_tag ) ) {
 		mctwc_log( "Adding global tag '$global_tag'" );
 		$tags_to_apply[] = array(
@@ -309,9 +308,9 @@ function mctwc_add_variation_field( $loop, $variation_data, $variation ) {
 			'id'          => "_mctwc_mailchimp_tag_{$loop}",
 			'name'        => "mctwc_mailchimp_tag[{$variation->ID}]",
 			'value'       => $current_value,
-			'label'       => __('Mailchimp Tag', 'wc-product-tags-for-mailchimp'),
+			'label'       => __('Mailchimp Tag', 'purchase-tagger-for-mailchimp'),
 			'desc_tip'    => true,
-			'description' => __('Enter the Mailchimp tag for this variation.', 'wc-product-tags-for-mailchimp'),
+			'description' => __('Enter the Mailchimp tag for this variation.', 'purchase-tagger-for-mailchimp'),
 		)
 	);
 }
@@ -359,9 +358,9 @@ function mctwc_add_product_field() {
 			'id'          => '_mctwc_mailchimp_product_tag',
 			'name'        => '_mctwc_mailchimp_product_tag',
 			'value'       => $current_value,
-			'label'       => __( 'Mailchimp Tag', 'wc-product-tags-for-mailchimp' ),
+			'label'       => __( 'Mailchimp Tag', 'purchase-tagger-for-mailchimp' ),
 			'desc_tip'    => true,
-			'description' => __( 'Tag applied when this product is purchased. For variable products, this tag applies to all variations.', 'wc-product-tags-for-mailchimp' ),
+			'description' => __( 'Tag applied when this product is purchased. For variable products, this tag applies to all variations.', 'purchase-tagger-for-mailchimp' ),
 		)
 	);
 }

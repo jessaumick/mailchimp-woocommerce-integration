@@ -1,6 +1,6 @@
 {
-    "name": "jess/wc-tags-for-mailchimp",
-    "description": "WordPress plugin allows users to tag Mailchimp contacts based on WooCommerce purchases.",
+    "name": "jess/purchase-tagger-for-mailchimp",
+    "description": "Assign Mailchimp tags to contacts based on WooCommerce purchases.",
     "type": "wordpress-plugin",
     "require": {
         "drewm/mailchimp-api": "^2.5"

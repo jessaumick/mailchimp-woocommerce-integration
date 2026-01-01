@@ -2,7 +2,7 @@
 /**
  * Creates Settings page under WooCommerce > Settings > Integrations
  *
- * @package MailchimpTagsForWooCommerce
+ * @package PurchaseTagger
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @return array Updated list of WooCommerce integrations.
  */
 function mctwc_add_integration( $integrations ) {
-	$integrations[] = 'WC_Mailchimp_Tags_Integration';
+	$integrations[] = 'MCTWC_Mailchimp_Tags_Integration';
 	return $integrations;
 }
 add_filter( 'woocommerce_integrations', 'mctwc_add_integration' );
@@ -25,7 +25,7 @@ add_filter( 'woocommerce_integrations', 'mctwc_add_integration' );
 /**
  * Load the Mailchimp Tags integration class.
  *
- * This function initializes the WC_Mailchimp_Tags_Integration class which provides
+ * This function initializes the MCTWC_Mailchimp_Tags_Integration class which provides
  * the settings interface under WooCommerce > Settings > Integrations.
  * It only loads when WooCommerce is active and the WC_Integration class exists.
  *
@@ -37,13 +37,13 @@ function mctwc_load_integration_class() {
 		return;
 	}
 	/**
-	 * Mailchimp Tags for WooCommerce Integration Class.
+	 * Product Tagger - Woocommerce to Mailchimp Integration Class.
 	 *
 	 * Adds a WooCommerce integration settings page for configuring Mailchimp API credentials and audience selection.
 	 *
 	 * @since 1.0.0
 	 */
-	class WC_Mailchimp_Tags_Integration extends WC_Integration {
+	class MCTWC_Mailchimp_Tags_Integration extends WC_Integration {
 		/**
 		 * Constructor.
 		 *
@@ -53,8 +53,8 @@ function mctwc_load_integration_class() {
 		 */
 		public function __construct() {
 			$this->id                 = 'mailchimp-tags';
-			$this->method_title       = __('Product Tags for Mailchimp', 'wc-product-tags-for-mailchimp');
-			$this->method_description = __('Configure the settings for Mailchimp audience tagging here.', 'wc-product-tags-for-mailchimp');
+			$this->method_title       = __('Product Tags for Mailchimp', 'purchase-tagger-for-mailchimp');
+			$this->method_description = __('Configure the settings for Mailchimp audience tagging here.', 'purchase-tagger-for-mailchimp');
 			$this->init_form_fields();
 			$this->init_settings();
 
@@ -70,28 +70,28 @@ function mctwc_load_integration_class() {
 		public function init_form_fields() {
 			$this->form_fields = array(
 				'api_key'    => array(
-					'title'       => __('Mailchimp API Key', 'wc-product-tags-for-mailchimp'),
+					'title'       => __('Mailchimp API Key', 'purchase-tagger-for-mailchimp'),
 					'type'        => 'password',
-					'description' => __( 'Found in Mailchimp under Profile &rarr; Extras &rarr; API keys.', 'wc-product-tags-for-mailchimp' ) . ' <a href="https://mailchimp.com/help/about-api-keys/" target="_blank">' . __( 'Learn more', 'wc-product-tags-for-mailchimp' ) . '</a>',
+					'description' => __( 'Found in Mailchimp under Profile &rarr; Extras &rarr; API keys.', 'purchase-tagger-for-mailchimp' ) . ' <a href="https://mailchimp.com/help/about-api-keys/" target="_blank">' . __( 'Learn more', 'purchase-tagger-for-mailchimp' ) . '</a>',
 					'default'     => '',
 					'id'          => 'mailchimp_api_key',
 				),
 				'list_id'    => array(
-					'title'       => __('Mailchimp Audience', 'wc-product-tags-for-mailchimp'),
+					'title'       => __('Mailchimp Audience', 'purchase-tagger-for-mailchimp'),
 					'type'        => 'text',
-					'description' => __('Enter your Mailchimp audience/list ID or verify your API key to see a dropdown.', 'wc-product-tags-for-mailchimp'),
+					'description' => __('Enter your Mailchimp audience/list ID or verify your API key to see a dropdown.', 'purchase-tagger-for-mailchimp'),
 					'default'     => '',
 					'id'          => 'mailchimp_list_id',
 					'class'       => 'regular-text',
 				),
 				'global_tag' => array(
-					'title'       => __( 'Global Tag', 'wc-product-tags-for-mailchimp' ),
+					'title'       => __( 'Global Tag', 'purchase-tagger-for-mailchimp' ),
 					'type'        => 'text',
-					'description' => __( 'Optional. This tag will be applied to all purchases, in addition to any product-specific tags.', 'wc-product-tags-for-mailchimp' ),
+					'description' => __( 'Optional. This tag will be applied to all purchases, in addition to any product-specific tags.', 'purchase-tagger-for-mailchimp' ),
 					'default'     => '',
 					'id'          => 'mailchimp_global_tag',
 					'class'       => 'regular-text',
-					'placeholder' => __( 'e.g., Customer', 'wc-product-tags-for-mailchimp' ),
+					'placeholder' => __( 'e.g., Customer', 'purchase-tagger-for-mailchimp' ),
 				),
 			);
 		}
@@ -123,7 +123,7 @@ function mctwc_load_integration_class() {
 				value="<?php echo esc_attr( $value ); ?>" 
 				class="regular-text" />
 			<button type="button" id="mctwc_verify_api" class="button button-secondary">
-				<?php esc_html_e( 'Verify & Load Audiences', 'wc-product-tags-for-mailchimp' ); ?>
+				<?php esc_html_e( 'Verify & Load Audiences', 'purchase-tagger-for-mailchimp' ); ?>
 			</button>
 			<span id="mctwc_api_status"></span>
 			<p class="description"><?php echo wp_kses_post( $data['description'] ); ?></p>
@@ -210,11 +210,11 @@ function mctwc_load_integration_class() {
 				'mctwc',
 			array(
 				'ajax_url'       => admin_url( 'admin-ajax.php' ),
-				'nonce'          => wp_create_nonce( 'wc-product-tags-for-mailchimp_nonce' ),
-				'button_text'    => __( 'Verify & Load Audiences', 'wc-product-tags-for-mailchimp' ),
-				'verifying_text' => __( 'Verifying...', 'wc-product-tags-for-mailchimp' ),
-				'loading_text'   => __( 'Loading audiences...', 'wc-product-tags-for-mailchimp' ),
-				'error_text'     => __( 'Error loading audiences. Please check your API key and try again.', 'wc-product-tags-for-mailchimp' ),
+				'nonce'          => wp_create_nonce( 'mctwc_nonce' ),
+				'button_text'    => __( 'Verify & Load Audiences', 'purchase-tagger-for-mailchimp' ),
+				'verifying_text' => __( 'Verifying...', 'purchase-tagger-for-mailchimp' ),
+				'loading_text'   => __( 'Loading audiences...', 'purchase-tagger-for-mailchimp' ),
+				'error_text'     => __( 'Error loading audiences. Please check your API key and try again.', 'purchase-tagger-for-mailchimp' ),
 			)
 			);
 		}

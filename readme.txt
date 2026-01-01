@@ -1,5 +1,5 @@
-=== WC Product Tags for Mailchimp ===
-Contributors: Jess Aumick
+=== Purchase Tagger - Product-Based Mailchimp Tags ===
+Contributors: jessaumick
 Tags: mailchimp, woocommerce, tags, email marketing, automation
 Requires at least: 6.0
 Tested up to: 6.9
@@ -14,7 +14,7 @@ Assign Mailchimp tags to contacts based on WooCommerce purchases.
 
 == Description ==
 
-WC Product Tags for Mailchimp is a lightweight, no-bloat plugin that tags your Mailchimp contacts based on what they purchase from your store.
+Purchase Tagger is a lightweight, no-bloat plugin for tagging your Mailchimp contacts based on what they purchase from your store. Tagging is supported for product variations, product parents, simple products, and global purchases.
 
 **Features:**
 

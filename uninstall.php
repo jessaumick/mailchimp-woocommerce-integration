@@ -1,10 +1,10 @@
 <?php
 /**
- * Uninstall script for WC Product Tags for Mailchimp.
+ * Uninstall script for Purchase Tagger - Product-Based Mailchimp Tags.
  *
  * Removes all plugin data when the plugin is deleted.
  *
- * @package MailchimpTagsForWooCommerce
+ * @package ProductTagger
  */
 
 if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
