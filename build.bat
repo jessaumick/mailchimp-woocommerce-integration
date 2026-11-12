@@ -20,7 +20,6 @@ cd ..\purchase-tagger-dist
 call composer install --no-dev
 
 :: Clean up
-del composer.json composer.lock
 rmdir /S /Q vendor\drewm\mailchimp-api\scripts
 
 echo.

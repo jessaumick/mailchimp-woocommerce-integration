@@ -3,11 +3,11 @@ Contributors: jessaumick
 Donate link: https://paypal.me/jessaumick
 Tags: mailchimp, woocommerce, tags, email marketing, automation
 Requires at least: 6.0
-Tested up to: 6.9
+Tested up to: 7.0
 Requires PHP: 7.4
 WC requires at least: 6.0
 WC tested up to: 10.4
-Stable tag: 1.0.0
+Stable tag: 1.2.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -15,7 +15,7 @@ Assign Mailchimp tags to contacts based on WooCommerce purchases.
 
 == Description ==
 
-Purchase Tagger is a lightweight, no-bloat plugin for tagging your Mailchimp contacts based on what they purchase from your store. Tagging is supported for product variations, product parents, simple products, and global purchases.
+Purchase Tagger is a lightweight, no-bloat plugin for tagging Mailchimp contacts based on specific items purchased from your WooCommerce store. Tagging is supported for product variations, product parents, simple products, and global purchases.
 
 **Features:**
 
@@ -72,6 +72,14 @@ Please ensure your store's privacy policy discloses this data sharing. For more 
 
 == Changelog ==
 
+= 1.2.0 =
+* Added: mctwc_subscriber_email filter hook, allowing the contact email to be overridden per order — useful when the subscriber differs from the billing contact (e.g., gift purchases or third-party enrollment).
+
+= 1.1.0 =
+* Added: Daily health check to validate Mailchimp API key status
+* Added: Admin notice when API key is missing or audience not selected
+* Improved: Centralized Mailchimp API initialization
+
 = 1.0.0 =
 * Initial release
 * Global tagging to assign common tag to all purchases
@@ -80,6 +88,9 @@ Please ensure your store's privacy policy discloses this data sharing. For more 
 * Automatic transactional contact creation for new customers
 
 == Upgrade Notice ==
+
+= 1.1.0 =
+Adds API key health checks and admin notices. 
 
 = 1.0.0 =
 Initial release.

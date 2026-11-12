@@ -232,6 +232,7 @@ add_action( 'plugins_loaded', 'mctwc_load_integration_class', 11 );
  * AJAX handler to verify Mailchimp API key and retrieve audience lists.
  *
  * @since 1.0.0
+ * @since 1.1.0 Now sets mctwc_api_status transient on success/failure.
  * @return void Outputs JSON response and exits.
  */
 function mctwc_ajax_get_mailchimp_lists() {
@@ -248,46 +249,41 @@ function mctwc_ajax_get_mailchimp_lists() {
 		wp_send_json_error( array( 'message' => 'API key is required' ) );
 	}
 
-	$autoload_path = plugin_dir_path( __FILE__ ) . 'vendor/autoload.php';
-	if ( ! file_exists( $autoload_path ) ) {
-		wp_send_json_error( array( 'message' => 'Mailchimp API dependencies not installed' ) );
+	// Use the helper function with the provided API key (not saved settings).
+	$mailchimp = mctwc_get_mailchimp( $api_key );
+
+	if ( is_wp_error( $mailchimp ) ) {
+		set_transient( 'mctwc_api_status', 'invalid', DAY_IN_SECONDS );
+		wp_send_json_error( array( 'message' => $mailchimp->get_error_message() ) );
 	}
 
-	require_once $autoload_path;
-
-	try {
-		$mailchimp = new \DrewM\MailChimp\MailChimp( $api_key );
-
-		$mailchimp->get( 'ping' );
-		if ( ! $mailchimp->success() ) {
-			wp_send_json_error( array( 'message' => 'Invalid API key or connection failed: ' . $mailchimp->getLastError() ) );
-		}
-
-		$result = $mailchimp->get( 'lists' );
-
-		if ( ! $mailchimp->success() ) {
-			wp_send_json_error( array( 'message' => $mailchimp->getLastError() ) );
-		}
-
-		if ( empty( $result['lists'] ) ) {
-			wp_send_json_error( array( 'message' => 'No audiences found in your Mailchimp account.' ) );
-		}
-
-		$lists = array_map(
-			function ( $audience ) {
-				return array(
-					'id'   => $audience['id'],
-					'name' => $audience['name'],
-				);
-			},
-			$result['lists']
-		);
-
-		wp_send_json_success( array( 'lists' => $lists ) );
-
-	} catch ( Exception $e ) {
-		mctwc_log( 'Mailchimp API error: ' . $e->getMessage(), 'error' );
-		wp_send_json_error( array( 'message' => $e->getMessage() ) );
+	$mailchimp->get( 'ping' );
+	if ( ! $mailchimp->success() ) {
+		set_transient( 'mctwc_api_status', 'invalid', DAY_IN_SECONDS );
+		wp_send_json_error( array( 'message' => 'Invalid API key or connection failed: ' . $mailchimp->getLastError() ) );
 	}
+
+	set_transient( 'mctwc_api_status', 'valid', DAY_IN_SECONDS );
+	$result = $mailchimp->get( 'lists' );
+
+	if ( ! $mailchimp->success() ) {
+		wp_send_json_error( array( 'message' => $mailchimp->getLastError() ) );
+	}
+
+	if ( empty( $result['lists'] ) ) {
+		wp_send_json_error( array( 'message' => 'No audiences found in your Mailchimp account.' ) );
+	}
+
+	$lists = array_map(
+		function ( $audience ) {
+			return array(
+				'id'   => $audience['id'],
+				'name' => $audience['name'],
+			);
+		},
+		$result['lists']
+	);
+
+	wp_send_json_success( array( 'lists' => $lists ) );
 }
 add_action( 'wp_ajax_mctwc_get_mailchimp_lists', 'mctwc_ajax_get_mailchimp_lists' );
