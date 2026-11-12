@@ -1,5 +1,6 @@
 === Purchase Tagger - Product-Based Mailchimp Tags ===
 Contributors: jessaumick
+Donate link: https://paypal.me/jessaumick
 Tags: mailchimp, woocommerce, tags, email marketing, automation
 Requires at least: 6.0
 Tested up to: 6.9

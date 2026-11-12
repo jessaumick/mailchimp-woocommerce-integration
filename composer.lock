@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "448b41d53ff6b0e3b41d3a4f481fcee1",
+    "content-hash": "b3dfff1691bd53f458493c47a4b4a8f7",
     "packages": [
         {
             "name": "drewm/mailchimp-api",

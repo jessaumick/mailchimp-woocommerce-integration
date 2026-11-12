@@ -33,7 +33,7 @@ add_filter( 'woocommerce_integrations', 'mctwc_add_integration' );
  * @return void Early return if WooCommerce is not active.
  */
 function mctwc_load_integration_class() {
-	if ( ! class_exists('WC_Integration') ) {
+	if ( ! class_exists( 'WC_Integration' ) ) {
 		return;
 	}
 	/**
@@ -53,12 +53,12 @@ function mctwc_load_integration_class() {
 		 */
 		public function __construct() {
 			$this->id                 = 'mailchimp-tags';
-			$this->method_title       = __('Product Tags for Mailchimp', 'purchase-tagger-for-mailchimp');
-			$this->method_description = __('Configure the settings for Mailchimp audience tagging here.', 'purchase-tagger-for-mailchimp');
+			$this->method_title       = __( 'Purchase Tagger - Product-Based Mailchimp Tags', 'purchase-tagger-for-mailchimp' );
+			$this->method_description = __( 'Connect your Mailchimp account to tag contacts based on their purchases.', 'purchase-tagger-for-mailchimp' );
 			$this->init_form_fields();
 			$this->init_settings();
 
-			add_action('woocommerce_update_options_integration_' . $this->id, array( $this, 'process_admin_options' ));
+			add_action( 'woocommerce_update_options_integration_' . $this->id, array( $this, 'process_admin_options' ) );
 			add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 		}
 		/**
@@ -70,16 +70,16 @@ function mctwc_load_integration_class() {
 		public function init_form_fields() {
 			$this->form_fields = array(
 				'api_key'    => array(
-					'title'       => __('Mailchimp API Key', 'purchase-tagger-for-mailchimp'),
+					'title'       => __( 'Mailchimp API Key', 'purchase-tagger-for-mailchimp' ),
 					'type'        => 'password',
 					'description' => __( 'Found in Mailchimp under Profile &rarr; Extras &rarr; API keys.', 'purchase-tagger-for-mailchimp' ) . ' <a href="https://mailchimp.com/help/about-api-keys/" target="_blank">' . __( 'Learn more', 'purchase-tagger-for-mailchimp' ) . '</a>',
 					'default'     => '',
 					'id'          => 'mailchimp_api_key',
 				),
 				'list_id'    => array(
-					'title'       => __('Mailchimp Audience', 'purchase-tagger-for-mailchimp'),
+					'title'       => __( 'Default Audience', 'purchase-tagger-for-mailchimp' ),
 					'type'        => 'text',
-					'description' => __('Enter your Mailchimp audience/list ID or verify your API key to see a dropdown.', 'purchase-tagger-for-mailchimp'),
+					'description' => __( 'Verify your API key to load audiences.', 'purchase-tagger-for-mailchimp' ),
 					'default'     => '',
 					'id'          => 'mailchimp_list_id',
 					'class'       => 'regular-text',
@@ -136,7 +136,8 @@ function mctwc_load_integration_class() {
 		/**
 		 * Generate HTML for text input field.
 		 *
-		 * Handles the list_id field specially to support dynamic dropdown replacement.
+		 * Handles the list_id field specially to render a disabled select
+		 * that gets enabled via JavaScript after API verification.
 		 *
 		 * @since 1.0.0
 		 * @param string $key  Field key.
@@ -145,31 +146,35 @@ function mctwc_load_integration_class() {
 		 */
 		public function generate_text_html( $key, $data ) {
 			if ( 'list_id' === $key ) {
-				$field_key = $this->get_field_key($key);
-				$value     = $this->get_option($key);
+				$field_key = $this->get_field_key( $key );
+				$value     = $this->get_option( $key );
 
 				ob_start();
 				?>
 				<tr valign="top" id="list_id_row">
 					<th scope="row" class="titledesc">
-						<label for="<?php echo esc_attr($data['id']); ?>"><?php echo wp_kses_post($data['title']); ?></label>
+						<label for="<?php echo esc_attr( $data['id'] ); ?>"><?php echo wp_kses_post( $data['title'] ); ?></label>
 					</th>
 					<td class="forminp">
 						<div id="mctwc_list_container_main">
-							<input type="text" 
-								name="<?php echo esc_attr($field_key); ?>" 
-								id="<?php echo esc_attr($data['id']); ?>"
-								value="<?php echo esc_attr($value); ?>" 
-								class="regular-text" />
-							<p class="description"><?php echo wp_kses_post($data['description']); ?></p>
+							<select id="<?php echo esc_attr( $data['id'] ); ?>" class="regular-text" disabled>
+								<option value=""><?php esc_html_e( 'Verify API key first', 'purchase-tagger-for-mailchimp' ); ?></option>
+							</select>
+							<?php if ( ! empty( $value ) ) : ?>
+								<input type="hidden" 
+									name="<?php echo esc_attr( $field_key ); ?>" 
+									id="mctwc_saved_list_id"
+									value="<?php echo esc_attr( $value ); ?>" />
+							<?php endif; ?>
 						</div>
+						<p class="description"><?php echo wp_kses_post( $data['description'] ); ?></p>
 					</td>
 				</tr>
 				<?php
 				return ob_get_clean();
 			}
 
-			return parent::generate_text_html($key, $data);
+			return parent::generate_text_html( $key, $data );
 		}
 
 		/**
@@ -208,14 +213,15 @@ function mctwc_load_integration_class() {
 			wp_localize_script(
 				'mctwc-admin',
 				'mctwc',
-			array(
-				'ajax_url'       => admin_url( 'admin-ajax.php' ),
-				'nonce'          => wp_create_nonce( 'mctwc_nonce' ),
-				'button_text'    => __( 'Verify & Load Audiences', 'purchase-tagger-for-mailchimp' ),
-				'verifying_text' => __( 'Verifying...', 'purchase-tagger-for-mailchimp' ),
-				'loading_text'   => __( 'Loading audiences...', 'purchase-tagger-for-mailchimp' ),
-				'error_text'     => __( 'Error loading audiences. Please check your API key and try again.', 'purchase-tagger-for-mailchimp' ),
-			)
+				array(
+					'ajax_url'          => admin_url( 'admin-ajax.php' ),
+					'nonce'             => wp_create_nonce( 'mctwc_nonce' ),
+					'button_text'       => __( 'Verify & Load Audiences', 'purchase-tagger-for-mailchimp' ),
+					'verifying_text'    => __( 'Verifying...', 'purchase-tagger-for-mailchimp' ),
+					'loading_text'      => __( 'Loading audiences...', 'purchase-tagger-for-mailchimp' ),
+					'verify_first_text' => __( 'Verify API key first', 'purchase-tagger-for-mailchimp' ),
+					'error_text'        => __( 'Error loading audiences. Please check your API key and try again.', 'purchase-tagger-for-mailchimp' ),
+				)
 			);
 		}
 	}

@@ -1,5 +1,5 @@
 {
-    "name": "jess/purchase-tagger-for-mailchimp",
+    "name": "jessaumick/purchase-tagger-for-mailchimp",
     "description": "Assign Mailchimp tags to contacts based on WooCommerce purchases.",
     "type": "wordpress-plugin",
     "require": {
